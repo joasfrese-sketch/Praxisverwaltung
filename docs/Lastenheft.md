@@ -1,7 +1,7 @@
 # Lastenheft – Praxisverwaltung
 
-> Status: **Entwurf v0.1** · Stand: 17.11.2026
-> Offene Punkte sind mit **❓ F-xx** markiert und verweisen auf den [Fragebogen](./Fragebogen.md).
+> Status: **v0.2 – Fragebogen beantwortet, Grundversion umgesetzt** · Stand: 17.11.2026
+> Die mit ❓ markierten Punkte sind durch die Antworten in Abschnitt 11 entschieden.
 
 ---
 
@@ -145,3 +145,37 @@ Nebenpfade: `verspätet`, `verschoben`, `abgesagt (Patient/Praxis)`, `nicht ersc
 - Bei Ausfall eines Arztes werden alle betroffenen Termine angezeigt und können mit ≤ 2 Klicks je Termin umgeplant werden.
 - Ein abgeschlossener Termin erscheint automatisch in der Akte des Patienten.
 - Push auf `main` → automatisch neue Version auf Vercel; DB-Migrationen werden mitgezogen.
+
+## 11. Entscheidungen aus dem Fragebogen
+
+| Thema | Entscheidung | Umsetzung |
+|---|---|---|
+| Praxisart (F-01) | Alle Fachrichtungen; Auswahl beim Anlegen | Praxisart-Auswahl in `/einrichten`, passende Termintyp-Vorlagen je Art |
+| Größe (F-02) | Ärzte, MFA, Räume variabel beim Anlegen; ein Standort | Einrichtungs-Assistent mit Anzahl-Feldern |
+| Mandanten (F-02) | Offen für viele Praxen | Jede Tabelle hat `practice_id`, Trennung per RLS; ein Benutzer kann mehreren Praxen angehören |
+| PVS (F-03) | Keine – App ist Hauptsystem | – |
+| Nutzer (F-04) | Ärzte, MFA, Admin; Patientenportal später | Rollen arzt/therapeut/mfa/verwaltung + Admin-Flag; `patients.user_id` für späteres Portal vorbereitet |
+| Akte für MFA (F-05) | Pro Mitarbeiter einstellbar | Schalter „darf medizinische Inhalte lesen“ im Personalprofil |
+| Ärzte sehen alle Patienten (F-06) | Ja | – |
+| Login (F-07) | E-Mail+Passwort, 2FA optional, schneller Benutzerwechsel | TOTP-2FA unter Einstellungen → Mein Konto; zuletzt genutzte Konten am Login |
+| Termin (F-08) | Grund frei + Liste; Aufwand = Dauer geplant/tatsächlich; Raum/Standort/Hausbesuch/Video; Assistenz; Protokoll frei + Vorlagen + Anhänge | vollständig umgesetzt |
+| Regeln (F-09) | Öffnungszeiten, Raster, Puffer, Akutslots einstellbar; Wartezimmer + Aufrufbildschirm | Einstellungen; `/wartezimmer`, `/anzeige/<token>` (anonymisiert) |
+| Benachrichtigung (F-10/11) | Personal In-App; Patienten Bestätigung, Erinnerung, Änderung, Verspätung, Link zum Bestätigen/Absagen | In-App live; Patienten-E-Mails im Ausgang, Versand sobald eigener SMTP steht; Patienten-Link `/t/<token>` |
+| Interne Kommunikation (F-12) | Kein Chat; angeheftete Nachrichten; Aufgaben | Notizen an Termin/Patient, Aufgabenliste |
+| Verzögerung (F-13) | Automatisch erkannt, Vorschlag + Bestätigung | Erkennung bei überzogener Behandlung / wartendem Patienten |
+| Ausfall (F-14) | Vertretung im Arztprofil, Patient nur informieren, Admin+MFA tragen ein | Störungen-Seite mit 1-Klick-Übergabe an Vertretung |
+| Absage (F-15) | Warteliste, MFA wählt manuell, Absagefrist einstellbar | Warteliste mit Vorschlägen für frei gewordene Slots |
+| No-Show | offen | Zählung + Warnhinweis ab einstellbarer Anzahl (Standard 3) |
+| Akte (F-16) | Diagnosen, Medikation, Allergien, Befunde, Versicherung, Notfall + eigene Kategorien | Kategorien pflegbar, Warnhinweis-Kategorien werden rot oben angezeigt |
+| Statistiken (F-17) | später | Phase 4 |
+| Technik (F-18) | Supabase „Praxisverwaltung“ (Free), Vercel „praxisverwaltung“, eigener SMTP später, keine SMS | verbunden |
+| Geräte (F-19) | PC, Tablet, PWA | responsive + Web-App-Manifest |
+| Abgrenzung (F-20) | bestätigt | – |
+| Daten (F-21) | zunächst Testdaten; 10 Jahre Aufbewahrung | Revisionssichere Protokolle/Akte (kein Ändern/Löschen), Audit-Log |
+| Design (F-22/23) | Grau-Blau, Deutsch | umgesetzt |
+
+### Offene Punkte für spätere Phasen
+- SMTP-Zugangsdaten → automatischer E-Mail-Versand + Erinnerungen (zeitgesteuert)
+- Patientenportal (Login für Patienten, Online-Buchung)
+- Statistiken, Datenexport, Löschkonzept nach Ablauf der Aufbewahrungsfrist
+- Vor Echtbetrieb: Supabase Pro (Backups), AV-Verträge, Datenschutz-Folgenabschätzung
