@@ -157,9 +157,9 @@ export function AppointmentForm({ patients, staff, rooms, types, defaults, slot 
       {state.error && <p className="rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-800">{state.error}</p>}
       {state.conflicts && (
         <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-          <b>Konflikte gefunden:</b>
+          <b>Bitte prüfen:</b>
           <ul className="ml-4 list-disc">{state.conflicts.map((c) => <li key={c}>{c}</li>)}</ul>
-          <button name="force" value="1" className="btn-secondary btn-sm mt-2">Trotzdem speichern</button>
+          <button name="force" value="1" className="btn-secondary btn-sm mt-2">Trotzdem speichern (z. B. Notfall, Hausbesuch)</button>
         </div>
       )}
       <div className="flex gap-2">
