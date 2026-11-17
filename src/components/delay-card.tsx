@@ -9,10 +9,12 @@ import type { Staff } from "@/lib/types";
 export function DelayCard({ d, doctor, tz }: { d: DelaySuggestion; doctor?: Staff; tz: string }) {
   return (
     <form action={applyDelay} className="rounded-xl border border-amber-300 bg-amber-50 p-4">
+      <input type="hidden" name="first_id" value={d.affected[0].id} />
+      <input type="hidden" name="first_start" value={d.firstStart} />
       <div className="flex flex-wrap items-center gap-2 text-sm text-amber-900">
         <Clock className="h-4 w-4" />
         <b>Verzögerung erkannt: {staffName(doctor)}</b>
-        <span>– ca. {d.delay} min ({d.cause})</span>
+        <span>– nächster Termin ca. {d.delay} min zu früh ({d.cause})</span>
       </div>
       <p className="mt-1 text-xs text-amber-800">Vorschlag: folgende Termine verschieben. Patienten mit E-Mail werden ab der eingestellten Schwelle automatisch informiert.</p>
       <ul className="mt-2 grid gap-1 text-sm sm:grid-cols-2">
