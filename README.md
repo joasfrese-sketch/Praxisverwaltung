@@ -4,7 +4,7 @@ Web-App für Arztpraxen: Terminplanung, Störungsmanagement (Verspätung, Ausfal
 
 **Stack:** Next.js 16 (App Router) · Supabase (Postgres + RLS, Auth, Realtime, Storage) · Vercel · GitHub
 
-- [Lastenheft](docs/Lastenheft.md) · [Fragebogen](docs/Fragebogen.md)
+- [Lastenheft](docs/Lastenheft.md) · [Fragebogen](docs/Fragebogen.md) · [SMTP-Einrichtung](docs/SMTP-Einrichtung.md)
 - Datenbank-Migrationen: `supabase/migrations/`
 
 ## Lokal starten

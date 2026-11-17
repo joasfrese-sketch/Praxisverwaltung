@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 import { getContext } from "@/lib/context";
-import { saveCategory, saveOpeningHours, savePractice, saveRoom, saveType } from "@/app/actions/admin";
+import { saveCategory, saveOpeningHours, savePractice, saveRoom, saveType, sendTestMail } from "@/app/actions/admin";
+import { smtpConfig } from "@/lib/mail";
 import { Card, Notice, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { PRACTICE_TYPES } from "@/lib/labels";
@@ -12,7 +13,9 @@ const DAYS = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samsta
 
 export default async function Settings({ searchParams }: PageProps<"/einstellungen">) {
   const sp = await searchParams;
-  const { supabase, practice: p, me } = await getContext();
+  const { supabase, practice: p, me, email } = await getContext();
+  const cfg = smtpConfig();
+  const smtp = cfg ? { host: cfg.host, port: cfg.port, from: cfg.from } : null;
   const [{ data: hours }, { data: rooms }, { data: types }, { data: cats }] = await Promise.all([
     supabase.from("opening_hours").select("*").eq("practice_id", p.id).order("opens"),
     supabase.from("rooms").select("*").eq("practice_id", p.id).eq("active", true).order("sort"),
@@ -137,11 +140,27 @@ export default async function Settings({ searchParams }: PageProps<"/einstellung
         </div>
       </Card>
 
-      <Card title="E-Mail-Versand (SMTP)">
-        <p className="text-sm text-slate-600">
-          Patienten-Benachrichtigungen werden bereits erzeugt und im <Link href="/benachrichtigungen" className="text-brand-700 underline">Ausgang</Link> gesammelt.
-          Sobald euer eigener SMTP-Server eingerichtet ist, werden die Zugangsdaten als geschützte Umgebungsvariablen hinterlegt und der Versand aktiviert.
-        </p>
+      <Card title="E-Mail-Versand (SMTP)" className="scroll-mt-20">
+        <div id="email" />
+        {typeof sp.mail === "string" && <Notice tone={sp.mail.startsWith("Fehler") ? "error" : "success"}>{sp.mail}</Notice>}
+        {smtp ? (
+          <div className="space-y-3 text-sm">
+            <p className="text-emerald-700">✓ Verbunden mit <b>{smtp.host}:{smtp.port}</b> · Absender <b>{smtp.from}</b></p>
+            <p className="text-slate-600">Patienten-E-Mails (Bestätigung, Erinnerung, Verschiebung, Verspätung, Absage) werden alle 5 Minuten automatisch versendet. Medizinische Inhalte (Anlass, Befunde) werden aus Datenschutzgründen nicht per E-Mail übertragen.</p>
+            {!ro && (
+              <form action={sendTestMail} className="flex flex-wrap gap-2">
+                <input name="to" type="email" className="input w-72" placeholder={email} />
+                <SubmitButton variant="secondary">Testmail senden</SubmitButton>
+              </form>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-2 text-sm text-slate-600">
+            <p className="text-amber-700">SMTP ist noch nicht eingerichtet – Patienten-E-Mails werden im <Link href="/benachrichtigungen" className="underline">Ausgang</Link> gesammelt und nach der Einrichtung automatisch nachgeholt.</p>
+            <p>Einrichtung: In Vercel unter <i>Project → Settings → Environment Variables</i> folgende Werte anlegen und neu deployen:</p>
+            <code className="block rounded bg-slate-100 p-2 text-xs">SMTP_HOST · SMTP_PORT (465 oder 587) · SMTP_USER · SMTP_PASSWORD · SMTP_FROM</code>
+          </div>
+        )}
       </Card>
     </div>
   );

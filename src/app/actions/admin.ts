@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/context";
 import type { ProtocolField } from "@/lib/types";
+import { headers } from "next/headers";
+import { isMailConfigured, processOutbox, smtpConfig, transporter } from "@/lib/mail";
 
 const s = (f: FormData, k: string) => {
   const v = f.get(k);
@@ -93,4 +95,40 @@ export async function saveCategory(f: FormData) {
   if (f.get("delete") === "1" && id) await supabase.from("record_categories").delete().eq("id", id);
   else if (s(f, "name")) await supabase.from("record_categories").insert({ practice_id: practice.id, name: s(f, "name"), is_warning: f.get("is_warning") === "on", sort: 50 });
   revalidatePath("/einstellungen");
+}
+
+export async function sendTestMail(f: FormData) {
+  const { practice, email } = await requireAdmin();
+  const to = s(f, "to") ?? email;
+  const cfg = smtpConfig();
+  if (!cfg) redirect(`/einstellungen?mail=${encodeURIComponent("SMTP ist noch nicht konfiguriert.")}#email`);
+  let msg: string;
+  try {
+    await transporter().verify();
+    await transporter().sendMail({
+      from: `"${practice.name.replace(/"/g, "")}" <${cfg.from}>`,
+      to,
+      subject: `Testmail – ${practice.name}`,
+      text: `Der E-Mail-Versand der Praxisverwaltung funktioniert.\n\nServer: ${cfg.host}:${cfg.port}\nAbsender: ${cfg.from}`,
+    });
+    msg = `Testmail an ${to} verschickt ✓`;
+  } catch (e) {
+    msg = `Fehler: ${e instanceof Error ? e.message : String(e)}`;
+  }
+  redirect(`/einstellungen?mail=${encodeURIComponent(msg)}#email`);
+}
+
+export async function sendOutboxNow() {
+  await requireAdmin();
+  if (!isMailConfigured()) redirect(`/benachrichtigungen?mail=${encodeURIComponent("SMTP ist noch nicht konfiguriert.")}`);
+  const h = await headers();
+  let msg: string;
+  try {
+    const r = await processOutbox(process.env.APP_URL ?? `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`);
+    msg = `${r.sent} versendet, ${r.failed} fehlgeschlagen`;
+  } catch (e) {
+    msg = `Fehler: ${e instanceof Error ? e.message : String(e)}`;
+  }
+  revalidatePath("/benachrichtigungen");
+  redirect(`/benachrichtigungen?mail=${encodeURIComponent(msg)}`);
 }
