@@ -2,7 +2,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getContext } from "@/lib/context";
-import { zonedToUtc } from "@/lib/time";
+import { hhmmToMinutes, toZoned, weekday, zonedToUtc } from "@/lib/time";
 import type { AppointmentStatus } from "@/lib/types";
 
 const s = (f: FormData, k: string) => {
@@ -32,7 +32,18 @@ async function findConflicts(
     if (a.room_id && c.room_id === a.room_id) msgs.push(`Raum ist bereits belegt (${name}).`);
     if (c.patient_id === a.patient_id) msgs.push(`Patient hat zur selben Zeit bereits einen Termin.`);
   }
-  const day = a.starts_at.slice(0, 10);
+  // Öffnungszeiten: Termin muss vollständig in einem Sprechzeiten-Fenster liegen
+  const tz = ctx.practice.timezone;
+  const s = toZoned(a.starts_at, tz);
+  const e = toZoned(a.ends_at, tz);
+  const { data: hours } = await supabase.from("opening_hours").select("opens, closes").eq("practice_id", practice.id).eq("weekday", weekday(s.date));
+  const endMin = e.date === s.date ? e.minutes : 24 * 60;
+  const inside = (hours ?? []).some((h) => hhmmToMinutes(h.opens) <= s.minutes && endMin <= hhmmToMinutes(h.closes));
+  if (!inside) {
+    const windows = (hours ?? []).map((h) => `${h.opens.slice(0, 5)}–${h.closes.slice(0, 5)}`).join(", ");
+    msgs.push(windows ? `Außerhalb der Öffnungszeiten (an diesem Tag: ${windows} Uhr).` : "Die Praxis ist an diesem Tag geschlossen.");
+  }
+  const day = s.date;
   const { data: abs } = await supabase
     .from("staff_absences").select("id").eq("staff_id", a.doctor_id).lte("starts_on", day).gte("ends_on", day).limit(1);
   if (abs?.length) msgs.push("Behandler ist an diesem Tag abwesend.");
