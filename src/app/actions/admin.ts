@@ -132,3 +132,10 @@ export async function sendOutboxNow() {
   revalidatePath("/benachrichtigungen");
   redirect(`/benachrichtigungen?mail=${encodeURIComponent(msg)}`);
 }
+
+export async function retryFailedEmails() {
+  const { supabase, practice } = await requireAdmin();
+  const { data, error } = await supabase.rpc("retry_failed_emails", { p_practice: practice.id });
+  revalidatePath("/benachrichtigungen");
+  redirect(`/benachrichtigungen?mail=${encodeURIComponent(error ? `Fehler: ${error.message}` : `${data ?? 0} E-Mail(s) wieder in den Versand gegeben`)}`);
+}

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getContext } from "@/lib/context";
 import { markNotificationsRead } from "@/app/actions/misc";
-import { sendOutboxNow } from "@/app/actions/admin";
+import { retryFailedEmails, sendOutboxNow } from "@/app/actions/admin";
 import { isMailConfigured } from "@/lib/mail";
 import { Badge, Card, Empty, Notice, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
@@ -50,6 +50,11 @@ export default async function Notifications({ searchParams }: PageProps<"/benach
             </div>
           ) : (
             <Notice tone="info">E-Mails werden versendet, sobald der SMTP-Server eingerichtet ist (Einstellungen → E-Mail-Versand). Bis dahin werden sie hier gesammelt.</Notice>
+          )}
+          {me.is_admin && (outbox ?? []).some((n) => n.status === "fehler") && (
+            <form action={retryFailedEmails} className="mb-3">
+              <SubmitButton size="sm" variant="secondary">Fehlgeschlagene erneut senden</SubmitButton>
+            </form>
           )}
           {outbox?.length ? (
             <ul className="divide-y divide-slate-100 text-sm">
