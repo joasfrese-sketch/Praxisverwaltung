@@ -1,44 +1,46 @@
-# E-Mail-Versand einrichten (SMTP)
+# E-Mail-Versand – Einrichtung
 
-## Was bereits fertig ist
-- **Ausgang:** Jede Terminänderung erzeugt eine Patienten-E-Mail im Ausgang (Bestätigung, Verschiebung, Verspätung, Behandlerwechsel, Absage).
-- **Erinnerungen:** Supabase erzeugt alle 5 Minuten fällige Erinnerungen (Standard 24 h vorher, pro Praxis/Patient einstellbar).
-- **Versand:** Supabase ruft alle 5 Minuten `https://praxisverwaltung.vercel.app/api/jobs/emails` auf; die App verschickt die Mails per SMTP. Fehlversuche werden bis zu 5× wiederholt.
-- **Absicherung:** gemeinsamer Schlüssel `EMAIL_JOB_SECRET` (Vercel) = `private.app_settings.job_secret` (Supabase) – bereits gesetzt.
-- **Datenschutz:** E-Mails enthalten nur Zeit, Ort, Behandler und den Bestätigen/Absagen-Link – keinen Anlass, keine Befunde.
-- **Testen:** Einstellungen → „Testmail senden“; Benachrichtigungen → „Jetzt senden“.
+## Stand
+- Die App erzeugt alle Patienten-E-Mails (Bestätigung, Erinnerung, Verschiebung, Verspätung, Vertretung, Absage) und sammelt sie im **Ausgang** (Benachrichtigungen).
+- Supabase stößt alle 5 Minuten den Versand an (`/api/jobs/emails`). Ist kein SMTP eingetragen, bleiben die Mails einfach im Ausgang.
+- Datenschutz: E-Mails enthalten nur Zeit, Ort, Behandler und den Bestätigen/Absagen-Link – keinen Anlass, keine Befunde.
 
-## Deine Aufgaben
+---
 
-### 1. Absender-Adresse anlegen (Variante Gmail – kostenlos, gut für die Testphase)
-1. https://accounts.google.com/signup → neues Konto, z. B. **praxisverwaltung.termine@gmail.com** (oder `<praxisname>.termine@gmail.com`).
-2. Konto → Sicherheit → **Bestätigung in zwei Schritten** aktivieren (Pflicht für Schritt 3).
-3. https://myaccount.google.com/apppasswords → App-Passwort „Praxisverwaltung“ erzeugen → 16-stelligen Code notieren (ohne Leerzeichen).
+## Phase 1 – Testbetrieb ohne E-Mail (aktuell)
 
-> Für den Echtbetrieb mit Patientendaten: lieber **Google Workspace** (≈ 7 €/Monat, Adresse mit eigener Domain, z. B. termine@praxis-muster.de) oder ein E-Mail-Postfach beim Domain-Hoster (IONOS, Strato, all-inkl …). Dort gibt es einen **AV-Vertrag (DSGVO)** – beim kostenlosen Gmail nicht. Die Schritte 2–4 bleiben gleich, nur Host/Port ändern sich.
+**Supabase** (Projekt *Praxisverwaltung*):
+1. Authentication → Sign In / Providers → Email → **„Confirm email“ aus** → Save.
+2. Authentication → Emails → SMTP Settings → **„Enable custom SMTP“ aus** → Save.
 
-### 2. Zugangsdaten in Vercel eintragen
-Vercel → Projekt **praxisverwaltung** → Settings → Environment Variables → für *Production* und *Preview*:
+**Vercel** (Projekt *praxisverwaltung*):
+3. Settings → Environment Variables → die fünf Variablen `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` **löschen**.
+4. Deployments → letztes Deployment → **Redeploy**.
 
-| Name | Wert (Gmail) | Typ |
-|---|---|---|
-| `SMTP_HOST` | `smtp.gmail.com` | Plain |
-| `SMTP_PORT` | `465` | Plain |
-| `SMTP_USER` | deine neue Gmail-Adresse | Plain |
-| `SMTP_PASSWORD` | das App-Passwort | **Sensitive** |
-| `SMTP_FROM` | dieselbe Gmail-Adresse | Plain |
+Ergebnis: Registrierung ohne Bestätigungs-Mail, sofort angemeldet. Patienten-Mails sammeln sich im Ausgang.
 
-Passwort **nicht in den Chat** schreiben. Danach: Deployments → letztes Deployment → „Redeploy“.
+---
 
-### 3. Dieselben Daten in Supabase für Login-Mails (Registrierung, Passwort vergessen)
-Supabase → Projekt Praxisverwaltung → Authentication → Emails → **SMTP Settings** → „Enable custom SMTP“:
-Host `smtp.gmail.com`, Port `465`, Username/Passwort wie oben, Sender email = Adresse, Sender name = Praxisname.
-(Ohne eigenen SMTP verschickt Supabase nur sehr wenige Mails pro Stunde.)
+## Phase 2 – Echtbetrieb mit eigenem Praxis-Postfach
 
-### 4. Erreichbarkeit der App freischalten
-- Supabase → Authentication → URL Configuration: Site URL `https://praxisverwaltung.vercel.app`, Redirect URL `https://*-joas-frese.vercel.app/**`.
-- Vercel → Settings → Deployment Protection → Vercel Authentication auf **„Standard Protection“** (nur Vorschauen geschützt). Sonst können Patienten-Links, der Aufruf-Bildschirm und der automatische Versand die Produktions-App nicht erreichen.
-- Pull Request nach `main` mergen → App geht live.
+Empfehlung: Postfach mit eigener Domain (z. B. `termine@praxis-name.de`) – normales SMTP-Passwort, keine Telefonnummer, **AV-Vertrag (DSGVO)** möglich, bessere Zustellbarkeit.
 
-### 5. Testen
-Einstellungen → E-Mail-Versand → „Testmail senden“. Danach einen Testpatienten mit deiner E-Mail anlegen und einen Termin buchen – die Bestätigung kommt spätestens nach 5 Minuten.
+| Anbieter | SMTP_HOST | SMTP_PORT | SMTP_USER |
+|---|---|---|---|
+| IONOS | `smtp.ionos.de` | `465` | volle E-Mail-Adresse |
+| Strato | `smtp.strato.de` | `465` | volle E-Mail-Adresse |
+| all-inkl | wird im KAS angezeigt (z. B. `w0123456.kasserver.com`) | `465` | Postfach-Name / Adresse |
+| Google Workspace | `smtp.gmail.com` | `465` | volle Adresse (App-Passwort nötig) |
+| Microsoft 365 | `smtp.office365.com` | `587` | volle Adresse (SMTP-Auth im Admin-Center aktivieren) |
+
+`SMTP_PASSWORD` = Postfach-Passwort, `SMTP_FROM` = Absenderadresse (meist = `SMTP_USER`).
+
+**Schritte:**
+1. Postfach beim Anbieter anlegen, AV-Vertrag abschließen, SPF/DKIM für die Domain aktivieren (machen die meisten Anbieter automatisch).
+2. **Vercel** → Environment Variables → die fünf `SMTP_*`-Variablen (Production) anlegen, `SMTP_PASSWORD` als *Sensitive* → Redeploy.
+3. **Supabase** → Authentication → Emails → SMTP Settings → dieselben Daten, Sender name = Praxisname → Save.
+4. **Supabase** → Sign In / Providers → Email → **„Confirm email“ wieder an**.
+5. In der App: Einstellungen → E-Mail-Versand → **„Testmail senden“**.
+6. Benachrichtigungen → ggf. **„Fehlgeschlagene erneut senden“** – gesammelte Mails gehen dann raus.
+
+Passwörter nie in den Chat schreiben – Claude kann den Erfolg über die Protokolle prüfen.

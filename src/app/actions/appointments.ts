@@ -125,6 +125,14 @@ export async function applyDelay(f: FormData) {
   const ids = f.getAll("ids").map(String);
   if (!minutes || !ids.length) return;
   const { data } = await supabase.from("appointments").select("id, starts_at, ends_at, delay_minutes").in("id", ids);
+  // Schutz gegen doppeltes Absenden / veraltete Ansicht: nur verschieben, wenn der Plan unverändert ist
+  const firstId = f.get("first_id");
+  const firstStart = f.get("first_start");
+  const current = (data ?? []).find((x) => x.id === firstId);
+  if (firstId && firstStart && current && new Date(current.starts_at).getTime() !== new Date(String(firstStart)).getTime()) {
+    revalidatePath("/", "layout");
+    return;
+  }
   // spätere Termine zuerst verschieben – vermeidet Zwischen-Überschneidungen
   for (const a of (data ?? []).sort((x, y) => y.starts_at.localeCompare(x.starts_at))) {
     await supabase
