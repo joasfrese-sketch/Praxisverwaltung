@@ -4,6 +4,7 @@ import { loadStaff, loadTypes } from "@/lib/data";
 import { addWaitlist, resolveWaitlist } from "@/app/actions/organisation";
 import { Badge, Card, Empty, PageHeader, patientName, staffName } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
+import { PlanTabs } from "@/components/plan-tabs";
 import { fmtDate, fmtDateTime, minutesBetween, toZoned } from "@/lib/time";
 import type { Appointment } from "@/lib/types";
 
@@ -54,6 +55,7 @@ export default async function Waitlist({ searchParams }: PageProps<"/warteliste"
 
   return (
     <>
+      <PlanTabs active="warteliste" />
       <PageHeader title="Warteliste" subtitle="Patienten, die kurzfristig einen frei werdenden Termin übernehmen möchten." />
 
       {slot && (

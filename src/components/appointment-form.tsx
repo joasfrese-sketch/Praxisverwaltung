@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useActionState, useMemo, useState } from "react";
-import { saveAppointment, type FormState } from "@/app/actions/appointments";
+import { useActionState, useEffect, useMemo, useState } from "react";
+import { saveAppointment, suggestSlots, type FormState, type Slot } from "@/app/actions/appointments";
 import type { AppointmentType, LocationKind, Room, Staff } from "@/lib/types";
 import { LOCATION, isProvider } from "@/lib/labels";
 
@@ -12,11 +12,20 @@ export type AppointmentDefaults = {
   video_url?: string | null; is_emergency?: boolean; notes?: string | null; waitlist_id?: string;
 };
 
+const plusDays = (d: string, n: number) => {
+  const x = new Date(`${d}T12:00:00Z`);
+  x.setUTCDate(x.getUTCDate() + n);
+  return x.toISOString().slice(0, 10);
+};
+const dayLabel = (d: string) => new Intl.DateTimeFormat("de-DE", { weekday: "short", day: "2-digit", month: "2-digit", timeZone: "UTC" }).format(new Date(`${d}T12:00:00Z`));
+
 const name = (s: { title?: string | null; first_name: string; last_name: string }) => [s.title, s.first_name, s.last_name].filter(Boolean).join(" ");
 
 export function AppointmentForm({ patients, staff, rooms, types, defaults, slot }: {
   patients: P[]; staff: Staff[]; rooms: Room[]; types: AppointmentType[]; defaults: AppointmentDefaults; slot: number;
 }) {
+  const providers = staff.filter((s) => isProvider(s.role));
+  const assistants = staff.filter((s) => !isProvider(s.role));
   const [state, action, pending] = useActionState<FormState, FormData>(saveAppointment, {});
   const [patientId, setPatientId] = useState(defaults.patient_id ?? "");
   const [filter, setFilter] = useState("");
@@ -24,6 +33,26 @@ export function AppointmentForm({ patients, staff, rooms, types, defaults, slot 
   const [duration, setDuration] = useState(defaults.duration);
   const [loc, setLoc] = useState<LocationKind>(defaults.location_kind ?? "praxis");
   const [repeat, setRepeat] = useState(false);
+  const [doctorId, setDoctorId] = useState(defaults.doctor_id ?? (providers.length === 1 ? providers[0].id : ""));
+  const [date, setDate] = useState(defaults.date);
+  const [time, setTime] = useState(defaults.time);
+  const [slots, setSlots] = useState<Slot[] | null>(null);
+  const [weeks, setWeeks] = useState(0);
+
+  // Nächste freie Zeiten des gewählten Behandlers (Dauer, Sprechzeiten, Abwesenheit, bestehende Termine berücksichtigt)
+  useEffect(() => {
+    if (!doctorId || !(duration >= 1)) return;
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      setSlots(null);
+      const r = await suggestSlots(doctorId, duration, plusDays(defaults.date, weeks * 14), defaults.id).catch(() => [] as Slot[]);
+      if (!cancelled) setSlots(r);
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [doctorId, duration, weeks, defaults.date, defaults.id]);
 
   const shown = useMemo(() => {
     const f = filter.trim().toLowerCase();
@@ -31,8 +60,6 @@ export function AppointmentForm({ patients, staff, rooms, types, defaults, slot 
     return list.slice(0, 200);
   }, [filter, patients]);
   const selected = patients.find((p) => p.id === patientId);
-  const providers = staff.filter((s) => isProvider(s.role));
-  const assistants = staff.filter((s) => !isProvider(s.role));
 
   return (
     <form action={action} className="space-y-4">
@@ -49,7 +76,7 @@ export function AppointmentForm({ patients, staff, rooms, types, defaults, slot 
           </div>
         ) : (
           <div>
-            <input className="input" placeholder="Name oder Geburtsdatum tippen …" value={filter} onChange={(e) => setFilter(e.target.value)} autoFocus />
+            <input className="input" placeholder="Name oder Geburtsdatum tippen, Enter wählt den ersten Treffer" value={filter} onChange={(e) => setFilter(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); if (shown[0]) setPatientId(shown[0].id); } }} autoFocus />
             <ul className="mt-1 max-h-48 overflow-y-auto rounded-md border border-slate-200 text-sm">
               {shown.map((p) => (
                 <li key={p.id}>
@@ -66,6 +93,12 @@ export function AppointmentForm({ patients, staff, rooms, types, defaults, slot 
 
       <section className="card grid gap-3 p-4 sm:grid-cols-2">
         <h2 className="text-sm font-semibold sm:col-span-2">Termin</h2>
+        <label className="block"><span className="label">Behandler *</span>
+          <select name="doctor_id" required className="input" value={doctorId} onChange={(e) => setDoctorId(e.target.value)}>
+            <option value="">– wählen –</option>
+            {providers.map((s) => <option key={s.id} value={s.id}>{name(s)}</option>)}
+          </select>
+        </label>
         <label className="block"><span className="label">Termintyp / Leistung</span>
           <select name="type_id" className="input" value={typeId} onChange={(e) => {
             setTypeId(e.target.value);
@@ -76,25 +109,45 @@ export function AppointmentForm({ patients, staff, rooms, types, defaults, slot 
             {types.map((t) => <option key={t.id} value={t.id}>{t.name} ({t.default_minutes} min)</option>)}
           </select>
         </label>
-        <label className="block"><span className="label">Grund {typeId ? "(optional)" : "*"}</span>
-          <input name="reason" className="input" defaultValue={defaults.reason} placeholder={typeId ? types.find((t) => t.id === typeId)?.name : "z. B. Rückenschmerzen"} />
-        </label>
+
+        <div className="sm:col-span-2">
+          <span className="label">Nächste freie Zeiten ({duration} min)</span>
+          {!doctorId ? (
+            <p className="text-sm text-slate-500">Behandler wählen, dann erscheinen die nächsten freien Zeiten zum Anklicken.</p>
+          ) : slots === null ? (
+            <p className="text-sm text-slate-500">Suche freie Zeiten …</p>
+          ) : slots.length === 0 ? (
+            <p className="text-sm text-slate-600">In diesem Zeitraum ist keine freie Zeit. Datum und Uhrzeit können unten von Hand eingegeben werden.</p>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {slots.map((s) => {
+                const on = s.date === date && s.time === time;
+                return (
+                  <button type="button" key={`${s.date}${s.time}`} onClick={() => { setDate(s.date); setTime(s.time); }} aria-pressed={on}
+                    className={`rounded-md border px-2.5 py-1 text-sm tabular-nums ${on ? "border-brand-700 bg-brand-700 text-white" : "border-slate-300 bg-white hover:bg-brand-50"}`}>
+                    <span className={on ? "text-brand-100" : "text-slate-500"}>{dayLabel(s.date)}</span> <b className="font-semibold">{s.time}</b>
+                  </button>
+                );
+              })}
+              <button type="button" className="btn-ghost btn-sm" onClick={() => setWeeks(weeks + 1)}>Spätere Zeiten</button>
+              {weeks > 0 && <button type="button" className="btn-ghost btn-sm" onClick={() => setWeeks(0)}>Zurück zum Anfang</button>}
+            </div>
+          )}
+        </div>
+
         <label className="block"><span className="label">Datum *</span>
-          <input type="date" name="date" required className="input" defaultValue={defaults.date} />
+          <input type="date" name="date" required className="input" value={date} onChange={(e) => setDate(e.target.value)} />
         </label>
         <div className="grid grid-cols-2 gap-2">
           <label className="block"><span className="label">Uhrzeit *</span>
-            <input type="time" name="time" required step={60} className="input" defaultValue={defaults.time} />
+            <input type="time" name="time" required step={60} className="input" value={time} onChange={(e) => setTime(e.target.value)} />
           </label>
           <label className="block"><span className="label">Dauer (min)</span>
             <input type="number" name="duration" min={1} step={1} className="input" value={duration} onChange={(e) => setDuration(Number(e.target.value))} />
           </label>
         </div>
-        <label className="block"><span className="label">Behandler *</span>
-          <select name="doctor_id" required className="input" defaultValue={defaults.doctor_id}>
-            <option value="">– wählen –</option>
-            {providers.map((s) => <option key={s.id} value={s.id}>{name(s)}</option>)}
-          </select>
+        <label className="block"><span className="label">Grund {typeId ? "(optional)" : "*"}</span>
+          <input name="reason" className="input" defaultValue={defaults.reason} placeholder={typeId ? types.find((t) => t.id === typeId)?.name : "z. B. Rückenschmerzen"} />
         </label>
         <label className="block"><span className="label">Assistenz / MFA</span>
           <select name="assistant_id" className="input" defaultValue={defaults.assistant_id ?? ""}>
@@ -103,7 +156,7 @@ export function AppointmentForm({ patients, staff, rooms, types, defaults, slot 
           </select>
         </label>
         <label className="flex items-center gap-2 text-sm sm:col-span-2">
-          <input type="checkbox" name="is_emergency" defaultChecked={defaults.is_emergency} className="accent-rose-600" /> Akut-/Notfalltermin
+          <input type="checkbox" name="is_emergency" defaultChecked={defaults.is_emergency} className="accent-rose-600" /> Akut- oder Notfalltermin
         </label>
       </section>
 

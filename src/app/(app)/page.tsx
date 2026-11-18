@@ -1,147 +1,126 @@
 import Link from "next/link";
+import { headers } from "next/headers";
+import { MonitorPlay } from "lucide-react";
 import { getContext } from "@/lib/context";
-import { loadAbsences, loadAppointments, loadStaff } from "@/lib/data";
+import { loadAbsences, loadAppointments, loadRooms, loadStaff } from "@/lib/data";
 import { detectDelays } from "@/lib/delays";
-import { dayRange, fmtDay, fmtDateTime, fmtTime, today } from "@/lib/time";
-import { ACTIVE_STATUSES, ABSENCE, isProvider } from "@/lib/labels";
-import { Card, Empty, Notice, PageHeader, staffName, patientName, Badge } from "@/components/ui";
-import { AppointmentRow } from "@/components/appointment-row";
-import { DelayCard } from "@/components/delay-card";
-import { markNotificationsRead } from "@/app/actions/misc";
-import { SubmitButton } from "@/components/submit-button";
+import { dayRange, fmtDateTime, fmtDay, today } from "@/lib/time";
+import { ABSENCE, ACTIVE_STATUSES, isProvider } from "@/lib/labels";
+import { Notice } from "@/components/ui";
+import { FlowBoard, type FlowAppt } from "@/components/today/flow-board";
+import { Attention } from "@/components/today/attention";
+import { DoctorFilter } from "@/components/today/doctor-filter";
+import { ForYou } from "@/components/today/for-you";
 
-export const metadata = { title: "Mein Tag" };
+export const metadata = { title: "Heute" };
+
+const short = (s: { title: string | null; last_name: string }) => [s.title, s.last_name].filter(Boolean).join(" ");
 
 export default async function Dashboard({ searchParams }: PageProps<"/">) {
   const sp = await searchParams;
-  const { supabase, practice, me } = await getContext();
+  const { supabase, practice, me, canReadMedical } = await getContext();
   const tz = practice.timezone;
   const day = today(tz);
+  const now = new Date();
   const { from, to } = dayRange(day, tz);
-  const [appts, { byId }, absences, tasksRes, notesRes] = await Promise.all([
+
+  const [appts, { providers, byId }, rooms, absences, tasksRes, overdueRes, notesRes, freedRes, waitRes, catsRes] = await Promise.all([
     loadAppointments(supabase, practice.id, from, to),
     loadStaff(supabase, practice.id),
+    loadRooms(supabase, practice.id),
     loadAbsences(supabase, practice.id, day, day),
-    supabase.from("tasks").select("*, patient:patients(first_name,last_name)").eq("practice_id", practice.id).is("done_at", null)
-      .or(`assignee_id.eq.${me.id},assignee_id.is.null`).order("due_date", { nullsFirst: false }).limit(8),
-    supabase.from("notifications").select("*").eq("recipient_staff_id", me.id).eq("status", "neu").order("created_at", { ascending: false }).limit(6),
+    supabase.from("tasks").select("id, title, due_date, patient:patients(first_name, last_name)").eq("practice_id", practice.id).is("done_at", null)
+      .or(`assignee_id.eq.${me.id},assignee_id.is.null`).order("due_date", { nullsFirst: false }).limit(6),
+    supabase.from("tasks").select("id", { count: "exact", head: true }).eq("practice_id", practice.id).is("done_at", null)
+      .or(`assignee_id.eq.${me.id},assignee_id.is.null`).lt("due_date", day),
+    supabase.from("notifications").select("id, title, body, appointment_id, created_at").eq("recipient_staff_id", me.id).eq("status", "neu")
+      .order("created_at", { ascending: false }).limit(4),
+    supabase.from("appointments").select("id", { count: "exact", head: true }).eq("practice_id", practice.id).eq("status", "abgesagt").gte("starts_at", now.toISOString()),
+    supabase.from("waitlist_entries").select("id", { count: "exact", head: true }).eq("practice_id", practice.id).is("resolved_at", null),
+    canReadMedical ? supabase.from("record_categories").select("id").eq("practice_id", practice.id).eq("is_warning", true) : Promise.resolve({ data: [] as { id: string }[] }),
   ]);
-  const provider = isProvider(me.role);
-  const mine = provider ? appts.filter((a) => a.doctor_id === me.id) : appts;
-  const delays = detectDelays(appts.filter((a) => ACTIVE_STATUSES.includes(a.status)));
-  const waiting = appts.filter((a) => a.status === "eingecheckt");
-  const affectedByAbsence = appts.filter((a) => ACTIVE_STATUSES.includes(a.status) && absences.some((ab) => ab.staff_id === a.doctor_id));
-  const open = mine.filter((a) => ACTIVE_STATUSES.includes(a.status)).length;
-  const done = mine.filter((a) => a.status === "abgeschlossen").length;
+
+  // Wer wird angezeigt: Ärzte sehen standardmäßig sich selbst, der Empfang alle.
+  const wanted = typeof sp.arzt === "string" ? sp.arzt : undefined;
+  const fallback = isProvider(me.role) ? me.id : "alle";
+  const arzt = wanted === "alle" || (wanted && byId.has(wanted)) ? wanted : byId.has(fallback) ? fallback : "alle";
+  const visible = arzt === "alle" ? appts : appts.filter((a) => a.doctor_id === arzt);
+
+  // Patienten mit Warnhinweis (Allergie, Antikoagulation …) – direkt auf der Karte sichtbar
+  const warnIds = (catsRes.data ?? []).map((c) => c.id);
+  let warnPatients = new Set<string>();
+  if (warnIds.length && visible.length) {
+    const { data } = await supabase.from("patient_record_entries").select("patient_id").in("category_id", warnIds).in("patient_id", [...new Set(visible.map((a) => a.patient_id))]);
+    warnPatients = new Set((data ?? []).map((r) => r.patient_id));
+  }
+
+  const roomName = new Map(rooms.map((r) => [r.id, r.name]));
+  const flow: FlowAppt[] = visible.map((a) => {
+    const d = byId.get(a.doctor_id);
+    return {
+      id: a.id, status: a.status, starts_at: a.starts_at, ends_at: a.ends_at, delay_minutes: a.delay_minutes, ticket_number: a.ticket_number,
+      is_emergency: a.is_emergency, reason: a.reason, location_kind: a.location_kind, checked_in_at: a.checked_in_at, actual_start: a.actual_start,
+      actual_end: a.actual_end, patientName: a.patient ? `${a.patient.last_name}, ${a.patient.first_name}` : "—",
+      doctorColor: d?.color ?? "#94a3b8", doctorName: d ? short(d) : "", roomName: a.room_id ? roomName.get(a.room_id) ?? null : null, warn: warnPatients.has(a.patient_id),
+    };
+  });
+
+  const delays = detectDelays(visible.filter((a) => ACTIVE_STATUSES.includes(a.status)), now);
+  const absent = absences
+    .map((ab) => ({ name: short(byId.get(ab.staff_id) ?? { title: null, last_name: "Mitarbeiter" }), count: appts.filter((a) => a.doctor_id === ab.staff_id && ACTIVE_STATUSES.includes(a.status)).length }))
+    .filter((x) => x.count > 0);
+
+  const chips = providers.map((p) => ({ id: p.id, label: short(p), color: p.color, count: appts.filter((a) => a.doctor_id === p.id).length }));
+  const dd = (iso: string) => iso.split("-").reverse().slice(0, 2).join(".");
+  const tasks = (tasksRes.data ?? []).map((t) => {
+    const patient = t.patient as unknown as { first_name: string; last_name: string } | null;
+    return {
+      id: t.id as string, title: t.title as string, patientName: patient ? `${patient.last_name}, ${patient.first_name}` : null,
+      due: t.due_date as string | null, overdue: !!t.due_date && t.due_date < day,
+      dueLabel: t.due_date ? (t.due_date === day ? "heute" : t.due_date < day ? `seit ${dd(t.due_date)}.` : `${dd(t.due_date)}.`) : null,
+    };
+  });
+  const notes = (notesRes.data ?? []).map((n) => ({ id: n.id as string, title: n.title as string, body: n.body as string | null, appointment_id: n.appointment_id as string | null, when: fmtDateTime(n.created_at, tz) }));
+
+  const h = await headers();
+  const displayUrl = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}/anzeige/${practice.display_token}`;
 
   return (
-    <>
-      <PageHeader
-        title={`Guten ${new Date().getHours() < 11 ? "Morgen" : new Date().getHours() < 17 ? "Tag" : "Abend"}, ${me.title ? me.title + " " : ""}${me.last_name}`}
-        subtitle={fmtDay(day)}
-      />
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold">Heute</h1>
+          <p className="text-sm text-slate-500">{fmtDay(day)}</p>
+        </div>
+        <a href={displayUrl} target="_blank" rel="noreferrer" className="btn-secondary">
+          <MonitorPlay className="h-4 w-4" /> Aufruf-Bildschirm
+        </a>
+      </div>
+
       {sp.willkommen && (
         <Notice tone="success">
-          Praxis angelegt! Nächste Schritte: <Link className="underline" href="/einstellungen">Öffnungszeiten & Regeln prüfen</Link>,{" "}
+          Praxis angelegt. Als Nächstes: <Link className="underline" href="/einstellungen">Sprechzeiten und Regeln prüfen</Link>,{" "}
           <Link className="underline" href="/personal">Team ergänzen</Link>, <Link className="underline" href="/patienten/neu">ersten Patienten anlegen</Link>.
         </Notice>
       )}
       {typeof sp.fehler === "string" && <Notice tone="error">{sp.fehler}</Notice>}
 
-      <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-        {[
-          { label: provider ? "Meine Termine heute" : "Termine heute", value: mine.length },
-          { label: "Offen", value: open },
-          { label: "Im Wartezimmer", value: waiting.length },
-          { label: "Abgeschlossen", value: done },
-        ].map((k) => (
-          <div key={k.label} className="card px-4 py-3">
-            <div className="text-2xl font-semibold text-brand-700 tabular-nums">{k.value}</div>
-            <div className="text-xs text-slate-500">{k.label}</div>
-          </div>
-        ))}
+      <DoctorFilter chips={chips} active={arzt} total={appts.length} />
+
+      <Attention
+        delays={delays}
+        staffById={byId}
+        tz={tz}
+        absent={absent}
+        freed={freedRes.count ?? 0}
+        waitlist={waitRes.count ?? 0}
+        overdueTasks={overdueRes.count ?? 0}
+      />
+
+      <div className="grid items-start gap-4 2xl:grid-cols-[minmax(0,1fr)_300px]">
+        <FlowBoard appts={flow} nowIso={now.toISOString()} tz={tz} back={`/?arzt=${arzt}`} />
+        <ForYou notes={notes} tasks={tasks} absent={absences.map((ab) => ({ id: ab.id, name: short(byId.get(ab.staff_id) ?? { title: null, last_name: "Mitarbeiter" }), kind: ABSENCE[ab.kind] }))} />
       </div>
-
-      {delays.length > 0 && (
-        <div className="mb-4 space-y-3">
-          {delays.map((d) => <DelayCard key={d.doctorId} d={d} doctor={byId.get(d.doctorId)} tz={tz} />)}
-        </div>
-      )}
-      {affectedByAbsence.length > 0 && (
-        <Notice tone="warning">
-          {affectedByAbsence.length} Termin(e) heute bei abwesendem Personal. <Link href="/stoerungen" className="font-medium underline">Ersatz zuweisen →</Link>
-        </Notice>
-      )}
-
-      <div className="grid gap-4 xl:grid-cols-3">
-        <Card
-          className="xl:col-span-2"
-          title={provider ? "Meine Termine heute" : "Alle Termine heute"}
-          actions={<Link href="/kalender" className="text-xs text-brand-700 hover:underline">Kalender →</Link>}
-          bodyClass="px-4 py-1"
-        >
-          {mine.length ? (
-            <ul className="divide-y divide-slate-100">
-              {mine.map((a) => <AppointmentRow key={a.id} a={a} doctor={byId.get(a.doctor_id)} tz={tz} showDoctor={!provider} />)}
-            </ul>
-          ) : (
-            <Empty>Heute keine Termine.</Empty>
-          )}
-        </Card>
-
-        <div className="space-y-4">
-          <Card title="Wartezimmer" actions={<Link href="/wartezimmer" className="text-xs text-brand-700 hover:underline">Öffnen →</Link>} bodyClass="px-4 py-2">
-            {waiting.length ? (
-              <ul className="space-y-1.5 text-sm">
-                {waiting.map((a) => (
-                  <li key={a.id} className="flex justify-between gap-2">
-                    <Link href={`/termine/${a.id}`} className="truncate hover:underline">#{a.ticket_number} {patientName(a.patient)}</Link>
-                    <span className="shrink-0 text-xs text-slate-500">seit {a.checked_in_at ? fmtTime(a.checked_in_at, tz) : "–"}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : <Empty>Niemand wartet.</Empty>}
-          </Card>
-
-          <Card title="Benachrichtigungen" actions={notesRes.data?.length ? (
-            <form action={markNotificationsRead}><SubmitButton size="sm" variant="ghost">Alle gelesen</SubmitButton></form>
-          ) : null} bodyClass="px-4 py-2">
-            {notesRes.data?.length ? (
-              <ul className="space-y-2 text-sm">
-                {notesRes.data.map((n) => (
-                  <li key={n.id}>
-                    <Link href={n.appointment_id ? `/termine/${n.appointment_id}` : "/benachrichtigungen"} className="font-medium hover:underline">{n.title}</Link>
-                    <div className="text-xs text-slate-500">{n.body} · {fmtDateTime(n.created_at, tz)}</div>
-                  </li>
-                ))}
-              </ul>
-            ) : <Empty>Keine neuen Benachrichtigungen.</Empty>}
-          </Card>
-
-          <Card title="Meine Aufgaben" actions={<Link href="/aufgaben" className="text-xs text-brand-700 hover:underline">Alle →</Link>} bodyClass="px-4 py-2">
-            {tasksRes.data?.length ? (
-              <ul className="space-y-1.5 text-sm">
-                {tasksRes.data.map((t) => (
-                  <li key={t.id} className="flex justify-between gap-2">
-                    <span className="truncate">{t.title}{t.patient ? ` – ${patientName(t.patient)}` : ""}</span>
-                    {t.due_date && <Badge tone={t.due_date < day ? "rose" : "slate"}>{t.due_date.split("-").reverse().join(".")}</Badge>}
-                  </li>
-                ))}
-              </ul>
-            ) : <Empty>Keine offenen Aufgaben.</Empty>}
-          </Card>
-
-          {absences.length > 0 && (
-            <Card title="Heute abwesend" bodyClass="px-4 py-2">
-              <ul className="space-y-1 text-sm">
-                {absences.map((a) => (
-                  <li key={a.id}>{staffName(byId.get(a.staff_id))} <span className="text-xs text-slate-500">({ABSENCE[a.kind]})</span></li>
-                ))}
-              </ul>
-            </Card>
-          )}
-        </div>
-      </div>
-    </>
+    </div>
   );
 }

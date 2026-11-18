@@ -20,7 +20,7 @@ export default async function StaffPage({ searchParams }: PageProps<"/personal">
       {typeof sp.fehler === "string" && <Notice tone="error">{sp.fehler}</Notice>}
       <Card bodyClass="p-0">
         <table className="w-full text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs text-slate-500 uppercase">
+          <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs font-medium text-slate-600">
             <tr><th className="px-4 py-2">Name</th><th className="px-4 py-2">Rolle</th><th className="hidden px-4 py-2 md:table-cell">Vertretung</th><th className="hidden px-4 py-2 md:table-cell">Login</th><th className="px-4 py-2">Heute</th></tr>
           </thead>
           <tbody className="divide-y divide-slate-100">

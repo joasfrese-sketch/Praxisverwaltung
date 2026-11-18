@@ -26,7 +26,7 @@ export default async function Patients({ searchParams }: PageProps<"/patienten">
       <Card bodyClass="p-0">
         {data?.length ? (
           <table className="w-full text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs text-slate-500 uppercase">
+            <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs font-medium text-slate-600">
               <tr><th className="px-4 py-2">Name</th><th className="px-4 py-2">Geburtsdatum</th><th className="hidden px-4 py-2 md:table-cell">Telefon</th><th className="hidden px-4 py-2 md:table-cell">Versicherung</th><th className="hidden px-4 py-2 lg:table-cell">Ort</th></tr>
             </thead>
             <tbody className="divide-y divide-slate-100">

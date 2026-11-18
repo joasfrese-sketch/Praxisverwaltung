@@ -2,8 +2,8 @@
 import { useFormStatus } from "react-dom";
 import type { ReactNode } from "react";
 
-export function SubmitButton({ children, variant = "primary", size, name, value, confirm }: {
-  children: ReactNode; variant?: "primary" | "secondary" | "danger" | "ghost"; size?: "sm"; name?: string; value?: string; confirm?: string;
+export function SubmitButton({ children, variant = "primary", size, name, value, confirm, className }: {
+  children: ReactNode; variant?: "primary" | "secondary" | "danger" | "ghost"; size?: "sm"; name?: string; value?: string; confirm?: string; className?: string;
 }) {
   const { pending } = useFormStatus();
   return (
@@ -15,7 +15,7 @@ export function SubmitButton({ children, variant = "primary", size, name, value,
       onClick={(e) => {
         if (confirm && !window.confirm(confirm)) e.preventDefault();
       }}
-      className={`btn-${variant} ${size === "sm" ? "btn-sm" : ""}`}
+      className={className ? `btn ${size === "sm" ? "btn-sm" : ""} ${className}` : `btn-${variant} ${size === "sm" ? "btn-sm" : ""}`}
     >
       {pending ? "…" : children}
     </button>

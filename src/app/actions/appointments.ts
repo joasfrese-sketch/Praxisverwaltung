@@ -2,7 +2,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getContext } from "@/lib/context";
-import { hhmmToMinutes, toZoned, weekday, zonedToUtc } from "@/lib/time";
+import { addDays, hhmmToMinutes, minutesToHhmm, today, toZoned, weekday, zonedToUtc } from "@/lib/time";
 import type { AppointmentStatus } from "@/lib/types";
 
 const s = (f: FormData, k: string) => {
@@ -184,4 +184,49 @@ export async function addNote(f: FormData) {
   if (!body) return;
   await supabase.from("notes").insert({ practice_id: practice.id, author_id: me.id, body, patient_id: s(f, "patient_id"), appointment_id: s(f, "appointment_id") });
   revalidatePath("/", "layout");
+}
+
+export type Slot = { date: string; time: string };
+
+/**
+ * Nächste freie Zeiten eines Behandlers für eine bestimmte Dauer (14 Tage ab „fromDate“).
+ * Beachtet Sprechzeiten, bestehende Termine inkl. Pufferzeit, Abwesenheiten und bereits vergangene Uhrzeiten.
+ * Pro Tag höchstens drei Vorschläge, damit die Auswahl über mehrere Tage reicht.
+ */
+export async function suggestSlots(doctorId: string, minutes: number, fromDate?: string, excludeId?: string): Promise<Slot[]> {
+  if (!doctorId || !Number.isFinite(minutes) || minutes < 1 || minutes > 480) return [];
+  const { supabase, practice } = await getContext();
+  const tz = practice.timezone;
+  const startDay = fromDate && /^\d{4}-\d{2}-\d{2}$/.test(fromDate) && fromDate >= today(tz) ? fromDate : today(tz);
+  const endDay = addDays(startDay, 15);
+  const [{ data: hours }, { data: appts }, { data: abs }] = await Promise.all([
+    supabase.from("opening_hours").select("weekday, opens, closes").eq("practice_id", practice.id),
+    supabase.from("appointments").select("id, starts_at, ends_at").eq("doctor_id", doctorId).not("status", "in", "(abgesagt,nicht_erschienen)")
+      .gte("ends_at", zonedToUtc(`${startDay}T00:00`, tz).toISOString()).lt("starts_at", zonedToUtc(`${endDay}T00:00`, tz).toISOString()),
+    supabase.from("staff_absences").select("starts_on, ends_on").eq("staff_id", doctorId).lte("starts_on", endDay).gte("ends_on", startDay),
+  ]);
+  const step = Math.max(5, practice.slot_minutes);
+  const buffer = (practice.buffer_minutes ?? 0) * 60000;
+  const busy = (appts ?? []).filter((a) => a.id !== excludeId).map((a) => [new Date(a.starts_at).getTime() - buffer, new Date(a.ends_at).getTime() + buffer]);
+  const nowZ = toZoned(new Date(), tz);
+  const out: Slot[] = [];
+  for (let i = 0; i <= 14 && out.length < 9; i++) {
+    const d = addDays(startDay, i);
+    if ((abs ?? []).some((x) => x.starts_on <= d && x.ends_on >= d)) continue;
+    let perDay = 0;
+    const windows = (hours ?? []).filter((h) => h.weekday === weekday(d)).sort((a, b) => a.opens.localeCompare(b.opens));
+    for (const h of windows) {
+      const open = hhmmToMinutes(h.opens);
+      const close = hhmmToMinutes(h.closes);
+      for (let m = open; m + minutes <= close && perDay < 3 && out.length < 9; m += step) {
+        if (d === nowZ.date && m < nowZ.minutes + 5) continue;
+        const s = zonedToUtc(`${d}T${minutesToHhmm(m)}`, tz).getTime();
+        const e = s + minutes * 60000;
+        if (busy.some(([bs, be]) => s < be && e > bs)) continue;
+        out.push({ date: d, time: minutesToHhmm(m) });
+        perDay++;
+      }
+    }
+  }
+  return out;
 }
