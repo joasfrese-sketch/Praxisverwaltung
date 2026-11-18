@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 @theme {
+  /* Grau-Blau – Grundton der Praxis */
   --color-brand-50: #f2f5f9;
   --color-brand-100: #e1e8f0;
   --color-brand-200: #c5d2e1;
@@ -8,39 +9,53 @@
   --color-brand-400: #6f8cad;
   --color-brand-500: #4f6d8f;
   --color-brand-600: #3f5876;
-  --color-brand-700: #344860;
-  --color-brand-800: #2c3c50;
-  --color-brand-900: #1f2a38;
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --color-brand-700: #34495f;
+  --color-brand-800: #263747;
+  --color-brand-900: #1b2733;
+
+  /* Zustände des Patientenflusses: je Station eine eigene Farbe */
+  --color-st-expected: #6f8cad;
+  --color-st-waiting: #c98a1b;
+  --color-st-active: #1f7a8c;
+  --color-st-done: #3f8f5f;
+  --color-st-waiting-d: #9a6409;
+  --color-st-active-d: #176475;
+  --color-st-done-d: #2f7a4d;
+  --color-warn: #c0392b;
+
+  --font-sans: var(--font-plex), ui-sans-serif, system-ui, sans-serif;
 }
 
-:root {
-  color-scheme: light;
-}
+:root { color-scheme: light; }
 
 body {
-  background: #eef1f5;
-  color: #1e293b;
+  background: #eef2f6;
+  color: #1b2733;
+  font-size: 14px;
 }
 
-/* Kompakte Formular-Elemente */
+@layer base {
+  :focus-visible { outline: 2px solid var(--color-brand-500); outline-offset: 2px; }
+}
+
 @utility input {
-  @apply block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-xs
+  @apply block min-h-9 w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm
     placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none
     disabled:bg-slate-50 disabled:text-slate-500;
 }
+/* Beschriftung: normaler Satz, keine Großbuchstaben */
 @utility label {
-  @apply mb-1 block text-xs font-medium tracking-wide text-slate-600 uppercase;
+  @apply mb-1 block text-xs font-medium text-slate-600;
 }
 @utility card {
-  @apply rounded-xl border border-slate-200 bg-white shadow-xs;
+  @apply rounded-lg border border-slate-200 bg-white;
 }
 @utility btn {
-  @apply inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors
+  @apply inline-flex min-h-9 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors
     disabled:cursor-not-allowed disabled:opacity-50;
 }
 @utility btn-primary {
-  @apply btn bg-brand-600 text-white hover:bg-brand-700;
+  @apply btn bg-brand-700 text-white hover:bg-brand-800;
 }
 @utility btn-secondary {
   @apply btn border border-slate-300 bg-white text-slate-700 hover:bg-slate-50;
@@ -52,8 +67,15 @@ body {
   @apply btn text-slate-600 hover:bg-slate-100;
 }
 @utility btn-sm {
-  @apply px-2 py-1 text-xs;
+  @apply min-h-7 px-2.5 py-1 text-xs;
+}
+@utility kbd {
+  @apply rounded border border-slate-300 bg-slate-50 px-1.5 py-px font-sans text-[11px] text-slate-500;
 }
 @utility hatch {
   background-image: repeating-linear-gradient(45deg, rgb(148 163 184 / 0.18) 0 6px, transparent 6px 12px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }

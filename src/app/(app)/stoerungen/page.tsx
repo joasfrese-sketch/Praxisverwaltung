@@ -9,6 +9,7 @@ import { addDays, dayRange, fmtDate, fmtDateTime, today, toZoned } from "@/lib/t
 import { Card, Empty, Notice, PageHeader, patientName, staffName } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { DelayCard } from "@/components/delay-card";
+import { PlanTabs } from "@/components/plan-tabs";
 import type { AppointmentWithPatient, Staff } from "@/lib/types";
 
 export const metadata = { title: "Störungen" };
@@ -39,19 +40,20 @@ export default async function Disruptions({ searchParams }: PageProps<"/stoerung
 
   return (
     <>
-      <PageHeader title="Störungen" subtitle="Verzögerungen, Ausfälle mit Ersatzpersonal und Absagen an einem Ort." />
+      <PlanTabs active="stoerungen" />
+      <PageHeader title="Störungen und Ausfälle" subtitle="Verzögerungen, Ausfälle mit Ersatzpersonal und frei gewordene Termine." />
       {typeof sp.fehler === "string" && <Notice tone="error">{sp.fehler}</Notice>}
 
-      <h2 className="mb-2 text-sm font-semibold text-slate-700 uppercase">Verzögerungen heute</h2>
+      <h2 className="mb-2 text-[15px] font-semibold">Verzögerungen heute</h2>
       <div className="mb-6 space-y-3">
         {delays.length ? delays.map((d) => <DelayCard key={d.doctorId} d={d} doctor={byId.get(d.doctorId)} tz={tz} />) : (
           <div className="card px-4 py-3 text-sm text-slate-500">Keine Verzögerungen erkannt. Die App prüft laufend, ob Behandlungen überziehen oder eingecheckte Patienten über ihre Zeit warten.</div>
         )}
       </div>
 
-      <h2 className="mb-2 text-sm font-semibold text-slate-700 uppercase">Ausfälle & Ersatz</h2>
+      <h2 className="mb-2 text-[15px] font-semibold">Ausfälle & Ersatz</h2>
       {canManageAbsences && (
-        <Card title="Abwesenheit eintragen" className="mb-4">
+        <div id="abwesenheit" className="scroll-mt-20"><Card title="Abwesenheit eintragen" className="mb-4">
           <form action={addAbsence} className="grid gap-2 sm:grid-cols-6">
             <select name="staff_id" required className="input sm:col-span-2">
               {staff.map((s) => <option key={s.id} value={s.id}>{staffName(s)}</option>)}
@@ -64,7 +66,7 @@ export default async function Disruptions({ searchParams }: PageProps<"/stoerung
             <SubmitButton>Eintragen</SubmitButton>
             <input name="note" className="input sm:col-span-6" placeholder="Notiz (optional)" />
           </form>
-        </Card>
+        </Card></div>
       )}
 
       <div className="mb-6 space-y-4">
@@ -121,7 +123,7 @@ export default async function Disruptions({ searchParams }: PageProps<"/stoerung
         }) : <div className="card px-4 py-3 text-sm text-slate-500">Keine Abwesenheiten in den nächsten 60 Tagen.</div>}
       </div>
 
-      <h2 className="mb-2 text-sm font-semibold text-slate-700 uppercase">Abgesagte Termine (freie Slots)</h2>
+      <h2 id="slots" className="mb-2 scroll-mt-20 text-[15px] font-semibold">Frei gewordene Termine</h2>
       <Card bodyClass="px-4 py-1">
         {(cancelled ?? []).length ? (
           <ul className="divide-y divide-slate-100 text-sm">

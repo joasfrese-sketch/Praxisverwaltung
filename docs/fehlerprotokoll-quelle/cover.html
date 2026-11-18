@@ -1,0 +1,134 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Fehlerprotokoll Praxisverwaltung</title><style>
+@page { size: A4; }
+* { box-sizing: border-box; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { font-family: Inter, "DejaVu Sans", sans-serif; font-size: 9.6pt; line-height: 1.48; color: #1e293b; margin: 0; }
+a { color: inherit; text-decoration: none; }
+h1 { font-size: 20pt; color: #2c3c50; margin: 0 0 6pt; }
+h2 { font-size: 14pt; color: #2c3c50; margin: 0 0 8pt; padding-bottom: 4pt; border-bottom: 2.5px solid #4f6d8f; break-after: avoid; }
+h3 { font-size: 10.5pt; color: #3f5876; margin: 12pt 0 4pt; break-after: avoid; }
+p { margin: 3pt 0 6pt; }
+code { font-family: "DejaVu Sans Mono", monospace; font-size: 8.2pt; background: #eef1f5; padding: 0.5pt 3pt; border-radius: 3px; word-break: break-word; }
+.pb { break-before: page; }
+.chip { display: inline-block; color: #fff; font-size: 7.6pt; font-weight: 600; padding: 1.2pt 7pt; border-radius: 20pt; white-space: nowrap; letter-spacing: .1pt; }
+.dots { color: #3f5876; letter-spacing: 1pt; font-size: 8pt; } .dots .off { color: #cbd5e1; }
+
+/* Cover */
+.cover { height: 297mm; padding: 0; background: linear-gradient(155deg, #1f2a38 0%, #344860 55%, #4f6d8f 100%); color: #fff; position: relative; }
+.cover .in { padding: 38mm 24mm 0; }
+.cover .tag { display: inline-block; border: 1.5px solid #9db2ca; color: #c5d2e1; padding: 3pt 12pt; border-radius: 20pt; font-size: 9pt; letter-spacing: 1.2pt; text-transform: uppercase; }
+.cover h1c { display: block; font-size: 34pt; line-height: 1.1; font-weight: 800; margin: 16pt 0 10pt; }
+.cover .sub { font-size: 14pt; line-height: 1.4; color: #e1e8f0; max-width: 150mm; }
+.cover .mark { margin-top: 26pt; display: flex; gap: 10pt; flex-wrap: wrap; }
+.cover .mark span { background: rgba(255,255,255,.14); border-radius: 8pt; padding: 7pt 12pt; font-size: 10pt; }
+.cover .mark b { display: block; font-size: 20pt; line-height: 1.1; }
+.cover .form { position: absolute; left: 24mm; right: 24mm; bottom: 34mm; background: #fff; color: #1e293b; border-radius: 10pt; padding: 12pt 16pt 6pt; }
+.cover .form div { display: flex; gap: 8pt; align-items: flex-end; margin: 0 0 11pt; font-size: 9pt; color: #64748b; }
+.cover .form div i { flex: 1; border-bottom: 1px solid #94a3b8; height: 11pt; }
+.cover .foot { position: absolute; left: 24mm; right: 24mm; bottom: 14mm; font-size: 8.5pt; color: #c5d2e1; }
+
+/* Statistik */
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8pt; margin: 8pt 0 12pt; }
+.tile { border-radius: 8pt; padding: 8pt 10pt; background: #f2f5f9; border: 1px solid #dbe3ec; }
+.tile b { display: block; font-size: 22pt; line-height: 1.1; color: #2c3c50; }
+.tile span { font-size: 8.3pt; color: #475569; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6pt 22pt; }
+.bar { display: grid; grid-template-columns: 38mm 1fr 8mm; gap: 6pt; align-items: center; margin: 3pt 0; font-size: 8.8pt; }
+.bt { height: 9pt; background: #e8edf3; border-radius: 5pt; overflow: hidden; } .bf { height: 100%; border-radius: 5pt; }
+.bn { font-weight: 700; text-align: right; }
+.legend { display: grid; grid-template-columns: 1.1fr 1fr 1fr; gap: 0 14pt; }
+.lg { margin: 0 0 5pt; } .ld { font-size: 8pt; color: #475569; line-height: 1.35; margin-top: 1.5pt; }
+
+/* Tabelle */
+table.ov { width: 100%; border-collapse: collapse; font-size: 8.4pt; }
+table.ov th { background: #3f5876; color: #fff; text-align: left; padding: 4pt 5pt; font-size: 8pt; }
+table.ov td { padding: 3pt 5pt; border-bottom: 1px solid #dbe3ec; vertical-align: middle; }
+table.ov tr:nth-child(even) td { background: #f7f9fb; }
+table.ov .c-id { font-weight: 700; color: #3f5876; width: 9mm; }
+
+/* Kreislauf */
+.cycle { display: flex; align-items: stretch; gap: 3pt; margin: 8pt 0 6pt; }
+.cy { flex: 1; background: #f2f5f9; border: 1px solid #dbe3ec; border-radius: 8pt; padding: 7pt 6pt; font-size: 7.9pt; }
+.cn { width: 16pt; height: 16pt; border-radius: 50%; background: #3f5876; color: #fff; font-weight: 700; text-align: center; line-height: 16pt; margin-bottom: 3pt; }
+.ct { font-weight: 700; color: #2c3c50; margin-bottom: 2pt; font-size: 8.4pt; }
+.ca { align-self: center; color: #6f8cad; font-size: 16pt; }
+
+/* Zeitleiste */
+.tl-item { display: flex; gap: 10pt; position: relative; padding-bottom: 7pt; break-inside: avoid; }
+.tl-item::before { content: ""; position: absolute; left: 5pt; top: 12pt; bottom: -2pt; width: 2px; background: #c5d2e1; }
+.tl-item:last-child::before { display: none; }
+.dot { flex: 0 0 12pt; height: 12pt; border-radius: 50%; background: #3f5876; border: 3px solid #e1e8f0; margin-top: 2pt; z-index: 1; }
+.dot.none { background: #15803d; }
+.tl-h { font-size: 9.4pt; } .tm { color: #64748b; font-size: 8pt; margin-left: 6pt; }
+.tl-t { font-size: 8.8pt; color: #475569; }
+.tl-f { margin-top: 3pt; display: flex; gap: 3pt; flex-wrap: wrap; }
+.fc { color: #fff; font-size: 7.8pt; font-weight: 700; padding: 1pt 6pt; border-radius: 4pt; }
+
+/* Fehlerkarten */
+.case { border: 1px solid #d5dde8; border-left: 5px solid var(--cc); border-radius: 8pt; padding: 8pt 11pt 9pt; margin: 0 0 10pt; background: #fff; }
+.ch, .meta { break-after: avoid; }
+.pbc { break-before: page; }
+.blk, .two, .msg, .lesson, .loop, figure { break-inside: avoid; }
+.ch { display: flex; gap: 8pt; align-items: center; }
+.num { background: var(--cc); color: #fff; font-weight: 800; font-size: 10.5pt; padding: 2pt 8pt; border-radius: 6pt; }
+.ttl { font-size: 11pt; font-weight: 700; color: #1e293b; line-height: 1.3; }
+.meta { display: flex; flex-wrap: wrap; gap: 5pt 8pt; align-items: center; margin: 5pt 0 6pt; font-size: 8.3pt; color: #475569; }
+.lbl { display: block; font-size: 7.3pt; font-weight: 800; letter-spacing: .8pt; text-transform: uppercase; color: var(--cc); margin-bottom: 1pt; }
+.blk { margin: 0 0 5pt; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 8pt; }
+.cause { background: #fff7ed; border-radius: 6pt; padding: 5pt 8pt; } .cause .lbl { color: #c2410c; }
+.fix { background: #f0fdf4; border-radius: 6pt; padding: 5pt 8pt; } .fix .lbl { color: #15803d; }
+.msg { background: #1e293b; border-radius: 6pt; padding: 5pt 9pt; margin: 0 0 5pt; }
+.msg .lbl { color: #94a3b8; } .msg code { background: transparent; color: #fecaca; font-size: 8pt; padding: 0; }
+.lesson { background: #eff6ff; border-radius: 6pt; padding: 5pt 9pt; margin-top: 5pt; border-left: 3px solid #2563eb; }
+.lesson .lbl { color: #1d4ed8; }
+.figs { display: grid; grid-template-columns: 1fr 1fr; gap: 6pt; margin: 6pt 0 2pt; align-items: start; }
+.figs.one { grid-template-columns: 1fr; }
+figure { margin: 0; border: 1px solid #d5dde8; border-radius: 6pt; overflow: hidden; background: #fff; }
+figure img { display: block; width: 100%; height: auto; }
+figcaption { font-size: 7.4pt; color: #475569; padding: 2pt 6pt 3pt; background: #f2f5f9; }
+.figs.one figure { max-width: 130mm; }
+
+/* Diagramm Endlosschleife */
+.loop { display: grid; gap: 5pt; margin: 6pt 0 3pt; }
+.lp { border-radius: 6pt; padding: 5pt 8pt; } .lp.bad { background: #fef2f2; } .lp.good { background: #f0fdf4; }
+.lt { font-size: 7.6pt; font-weight: 800; text-transform: uppercase; letter-spacing: .7pt; margin-bottom: 3pt; }
+.bad .lt { color: #b91c1c; } .good .lt { color: #15803d; }
+.flow { display: flex; align-items: center; gap: 4pt; flex-wrap: nowrap; }
+.flow span { flex: 1; background: #fff; border: 1px solid #d5dde8; border-radius: 5pt; padding: 3pt 5pt; font-size: 7.6pt; text-align: center; line-height: 1.3; }
+.flow span.warn { border-color: #f87171; background: #fff1f2; } .flow span.ok { border-color: #4ade80; background: #f0fdf4; }
+.flow i { font-style: normal; color: #64748b; font-size: 11pt; } .flow i.back { color: #b91c1c; font-weight: 700; }
+
+/* Erkenntnisse, Rollen */
+.ls { display: flex; gap: 8pt; background: #f2f5f9; border-radius: 8pt; padding: 5pt 9pt; margin: 0 0 4pt; break-inside: avoid; font-size: 8.7pt; line-height: 1.4; }
+.lsn { flex: 0 0 18pt; height: 18pt; border-radius: 50%; background: #3f5876; color: #fff; font-weight: 700; text-align: center; line-height: 18pt; }
+.roles, .role, .note { break-inside: avoid; }
+.roles { display: grid; grid-template-columns: 1fr 1fr; gap: 10pt; margin: 6pt 0; }
+.role { border: 1px solid #d5dde8; border-radius: 8pt; padding: 8pt 11pt; font-size: 9pt; }
+.role h4 { margin: 0 0 3pt; color: #2c3c50; font-size: 10pt; } .role ul { margin: 2pt 0 0; padding-left: 14pt; }
+.open li { margin: 2pt 0; list-style: none; margin-left: -14pt; }
+.box { display: inline-block; width: 8pt; height: 8pt; border: 1.3px solid #3f5876; border-radius: 2px; margin-right: 7pt; vertical-align: -1pt; }
+.glos { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18pt; font-size: 8pt; line-height: 1.34; }
+.gl { break-inside: avoid; margin-bottom: 2pt; } .gl b { color: #2c3c50; display: block; }
+.note { background: #fffbeb; border: 1px solid #fcd34d; border-radius: 6pt; padding: 6pt 10pt; font-size: 8.8pt; margin: 8pt 0; }
+</style></head><body>
+<div class="cover">
+  <div class="in">
+    <span class="tag">Schulprojekt · Informatik</span>
+    <span style="display:block;font-size:34pt;line-height:1.1;font-weight:800;margin:16pt 0 10pt">Aus Fehlern lernen</span>
+    <div class="sub">Fehlerprotokoll zum Projekt <b>„Praxisverwaltung“</b>: Was bei der Entwicklung einer Web-App für Arztpraxen schiefging – und wie wir es behoben haben.</div>
+    <div class="mark">
+      <span><b>19</b>Fehlerfälle</span>
+      <span><b>14</b>gelöst oder vermieden</span>
+      <span><b>3</b>umgangen</span>
+      <span><b>2</b>noch offen</span>
+    </div>
+  </div>
+  <div class="form">
+    <div>Name(n):<i></i></div>
+    <div>Klasse / Kurs:<i></i></div>
+    <div>Fach / Lehrkraft:<i></i></div>
+    <div>Abgabedatum:<i></i></div>
+  </div>
+  <div class="foot">Stand: 18.11.2026 · Dieses Dokument wurde mit Unterstützung der KI Claude (Anthropic) aus dem Projektverlauf erstellt. Die KI-Nutzung ist im Abschnitt „Wer hat was gemacht?“ erklärt.</div>
+</div></body></html>
