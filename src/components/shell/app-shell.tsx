@@ -4,6 +4,7 @@ import { Bell, LogOut, Plus, UserPlus } from "lucide-react";
 import { SideNav } from "./side-nav";
 import { BottomNav } from "./bottom-nav";
 import { CommandBar } from "./command-bar";
+import { PresenceCheck, type PresenceCandidate } from "./presence-check";
 import { RealtimeRefresh } from "@/components/realtime-refresh";
 import { switchPractice } from "@/app/actions/misc";
 
@@ -15,10 +16,11 @@ export interface ShellProps {
   unread: number;
   tasks: number;
   realtime?: boolean;
+  presence?: { candidates: PresenceCandidate[]; askAfterMinutes: number; nowIso: string; tz: string };
   children: ReactNode;
 }
 
-export function AppShell({ practiceName, practiceId, practices, user, unread, tasks, realtime = true, children }: ShellProps) {
+export function AppShell({ practiceName, practiceId, practices, user, unread, tasks, realtime = true, presence, children }: ShellProps) {
   return (
     <div className="min-h-screen lg:flex">
       <aside className="hidden bg-brand-900 text-slate-300 lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-56 lg:shrink-0 lg:flex-col lg:px-2.5 lg:py-4">
@@ -74,6 +76,7 @@ export function AppShell({ practiceName, practiceId, practices, user, unread, ta
 
       <BottomNav tasks={tasks} unread={unread} />
       {realtime && <RealtimeRefresh practiceId={practiceId} />}
+      {presence && <PresenceCheck {...presence} />}
     </div>
   );
 }

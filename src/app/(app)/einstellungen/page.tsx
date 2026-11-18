@@ -51,6 +51,10 @@ export default async function Settings({ searchParams }: PageProps<"/einstellung
             <label className="block"><span className="label">Erinnerungen (Std. vorher)</span><input name="reminder_hours" className="input" defaultValue={p.reminder_hours.join(", ")} /></label>
             <label className="block"><span className="label">Patient informieren bei Verspätung ab (min)</span><input name="delay_notify_minutes" type="number" min={0} className="input" defaultValue={p.delay_notify_minutes} /></label>
             <label className="block"><span className="label">Warnung ab x „nicht erschienen“</span><input name="no_show_warn_threshold" type="number" min={1} className="input" defaultValue={p.no_show_warn_threshold} /></label>
+            <label className="block sm:col-span-2"><span className="label">An der Anmeldung nachfragen nach (min)</span>
+              <input name="no_show_ask_minutes" type="number" min={1} max={240} className="input sm:max-w-40" defaultValue={p.no_show_ask_minutes} />
+              <span className="mt-1 block text-xs text-slate-500">Ist ein Patient so lange nach Terminbeginn nicht eingecheckt, fragt die App MFA, Verwaltung und Admins, ob er da ist.</span>
+            </label>
             {!ro && <div className="sm:col-span-3"><SubmitButton>Speichern</SubmitButton></div>}
           </fieldset>
         </form>

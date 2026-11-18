@@ -12,7 +12,7 @@ export interface Practice {
   street: string | null; zip: string | null; city: string | null; phone: string | null; email: string | null;
   timezone: string; slot_minutes: number; buffer_minutes: number; emergency_slots_per_day: number;
   cancel_deadline_hours: number; reminder_hours: number[]; delay_notify_minutes: number;
-  no_show_warn_threshold: number; display_token: string;
+  no_show_warn_threshold: number; no_show_ask_minutes: number; display_token: string;
 }
 export interface Staff {
   id: string; practice_id: string; user_id: string | null; role: StaffRole; is_admin: boolean;
