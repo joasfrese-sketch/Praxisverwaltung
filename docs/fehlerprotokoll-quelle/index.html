@@ -1,0 +1,573 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Fehlerprotokoll Praxisverwaltung</title><style>
+@page { size: A4; }
+* { box-sizing: border-box; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { font-family: Inter, "DejaVu Sans", sans-serif; font-size: 9.6pt; line-height: 1.48; color: #1e293b; margin: 0; }
+a { color: inherit; text-decoration: none; }
+h1 { font-size: 20pt; color: #2c3c50; margin: 0 0 6pt; }
+h2 { font-size: 14pt; color: #2c3c50; margin: 0 0 8pt; padding-bottom: 4pt; border-bottom: 2.5px solid #4f6d8f; break-after: avoid; }
+h3 { font-size: 10.5pt; color: #3f5876; margin: 12pt 0 4pt; break-after: avoid; }
+p { margin: 3pt 0 6pt; }
+code { font-family: "DejaVu Sans Mono", monospace; font-size: 8.2pt; background: #eef1f5; padding: 0.5pt 3pt; border-radius: 3px; word-break: break-word; }
+.pb { break-before: page; }
+.chip { display: inline-block; color: #fff; font-size: 7.6pt; font-weight: 600; padding: 1.2pt 7pt; border-radius: 20pt; white-space: nowrap; letter-spacing: .1pt; }
+.dots { color: #3f5876; letter-spacing: 1pt; font-size: 8pt; } .dots .off { color: #cbd5e1; }
+
+/* Cover */
+.cover { height: 297mm; padding: 0; background: linear-gradient(155deg, #1f2a38 0%, #344860 55%, #4f6d8f 100%); color: #fff; position: relative; }
+.cover .in { padding: 38mm 24mm 0; }
+.cover .tag { display: inline-block; border: 1.5px solid #9db2ca; color: #c5d2e1; padding: 3pt 12pt; border-radius: 20pt; font-size: 9pt; letter-spacing: 1.2pt; text-transform: uppercase; }
+.cover h1c { display: block; font-size: 34pt; line-height: 1.1; font-weight: 800; margin: 16pt 0 10pt; }
+.cover .sub { font-size: 14pt; line-height: 1.4; color: #e1e8f0; max-width: 150mm; }
+.cover .mark { margin-top: 26pt; display: flex; gap: 10pt; flex-wrap: wrap; }
+.cover .mark span { background: rgba(255,255,255,.14); border-radius: 8pt; padding: 7pt 12pt; font-size: 10pt; }
+.cover .mark b { display: block; font-size: 20pt; line-height: 1.1; }
+.cover .form { position: absolute; left: 24mm; right: 24mm; bottom: 34mm; background: #fff; color: #1e293b; border-radius: 10pt; padding: 12pt 16pt 6pt; }
+.cover .form div { display: flex; gap: 8pt; align-items: flex-end; margin: 0 0 11pt; font-size: 9pt; color: #64748b; }
+.cover .form div i { flex: 1; border-bottom: 1px solid #94a3b8; height: 11pt; }
+.cover .foot { position: absolute; left: 24mm; right: 24mm; bottom: 14mm; font-size: 8.5pt; color: #c5d2e1; }
+
+/* Statistik */
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8pt; margin: 8pt 0 12pt; }
+.tile { border-radius: 8pt; padding: 8pt 10pt; background: #f2f5f9; border: 1px solid #dbe3ec; }
+.tile b { display: block; font-size: 22pt; line-height: 1.1; color: #2c3c50; }
+.tile span { font-size: 8.3pt; color: #475569; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6pt 22pt; }
+.bar { display: grid; grid-template-columns: 38mm 1fr 8mm; gap: 6pt; align-items: center; margin: 3pt 0; font-size: 8.8pt; }
+.bt { height: 9pt; background: #e8edf3; border-radius: 5pt; overflow: hidden; } .bf { height: 100%; border-radius: 5pt; }
+.bn { font-weight: 700; text-align: right; }
+.legend { display: grid; grid-template-columns: 1.1fr 1fr 1fr; gap: 0 14pt; }
+.lg { margin: 0 0 5pt; } .ld { font-size: 8pt; color: #475569; line-height: 1.35; margin-top: 1.5pt; }
+
+/* Tabelle */
+table.ov { width: 100%; border-collapse: collapse; font-size: 8.4pt; }
+table.ov th { background: #3f5876; color: #fff; text-align: left; padding: 4pt 5pt; font-size: 8pt; }
+table.ov td { padding: 3pt 5pt; border-bottom: 1px solid #dbe3ec; vertical-align: middle; }
+table.ov tr:nth-child(even) td { background: #f7f9fb; }
+table.ov .c-id { font-weight: 700; color: #3f5876; width: 9mm; }
+
+/* Kreislauf */
+.cycle { display: flex; align-items: stretch; gap: 3pt; margin: 8pt 0 6pt; }
+.cy { flex: 1; background: #f2f5f9; border: 1px solid #dbe3ec; border-radius: 8pt; padding: 7pt 6pt; font-size: 7.9pt; }
+.cn { width: 16pt; height: 16pt; border-radius: 50%; background: #3f5876; color: #fff; font-weight: 700; text-align: center; line-height: 16pt; margin-bottom: 3pt; }
+.ct { font-weight: 700; color: #2c3c50; margin-bottom: 2pt; font-size: 8.4pt; }
+.ca { align-self: center; color: #6f8cad; font-size: 16pt; }
+
+/* Zeitleiste */
+.tl-item { display: flex; gap: 10pt; position: relative; padding-bottom: 7pt; break-inside: avoid; }
+.tl-item::before { content: ""; position: absolute; left: 5pt; top: 12pt; bottom: -2pt; width: 2px; background: #c5d2e1; }
+.tl-item:last-child::before { display: none; }
+.dot { flex: 0 0 12pt; height: 12pt; border-radius: 50%; background: #3f5876; border: 3px solid #e1e8f0; margin-top: 2pt; z-index: 1; }
+.dot.none { background: #15803d; }
+.tl-h { font-size: 9.4pt; } .tm { color: #64748b; font-size: 8pt; margin-left: 6pt; }
+.tl-t { font-size: 8.8pt; color: #475569; }
+.tl-f { margin-top: 3pt; display: flex; gap: 3pt; flex-wrap: wrap; }
+.fc { color: #fff; font-size: 7.8pt; font-weight: 700; padding: 1pt 6pt; border-radius: 4pt; }
+
+/* Fehlerkarten */
+.case { border: 1px solid #d5dde8; border-left: 5px solid var(--cc); border-radius: 8pt; padding: 8pt 11pt 9pt; margin: 0 0 10pt; background: #fff; }
+.ch, .meta { break-after: avoid; }
+.pbc { break-before: page; }
+.blk, .two, .msg, .lesson, .loop, figure { break-inside: avoid; }
+.ch { display: flex; gap: 8pt; align-items: center; }
+.num { background: var(--cc); color: #fff; font-weight: 800; font-size: 10.5pt; padding: 2pt 8pt; border-radius: 6pt; }
+.ttl { font-size: 11pt; font-weight: 700; color: #1e293b; line-height: 1.3; }
+.meta { display: flex; flex-wrap: wrap; gap: 5pt 8pt; align-items: center; margin: 5pt 0 6pt; font-size: 8.3pt; color: #475569; }
+.lbl { display: block; font-size: 7.3pt; font-weight: 800; letter-spacing: .8pt; text-transform: uppercase; color: var(--cc); margin-bottom: 1pt; }
+.blk { margin: 0 0 5pt; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 8pt; }
+.cause { background: #fff7ed; border-radius: 6pt; padding: 5pt 8pt; } .cause .lbl { color: #c2410c; }
+.fix { background: #f0fdf4; border-radius: 6pt; padding: 5pt 8pt; } .fix .lbl { color: #15803d; }
+.msg { background: #1e293b; border-radius: 6pt; padding: 5pt 9pt; margin: 0 0 5pt; }
+.msg .lbl { color: #94a3b8; } .msg code { background: transparent; color: #fecaca; font-size: 8pt; padding: 0; }
+.lesson { background: #eff6ff; border-radius: 6pt; padding: 5pt 9pt; margin-top: 5pt; border-left: 3px solid #2563eb; }
+.lesson .lbl { color: #1d4ed8; }
+.figs { display: grid; grid-template-columns: 1fr 1fr; gap: 6pt; margin: 6pt 0 2pt; align-items: start; }
+.figs.one { grid-template-columns: 1fr; }
+figure { margin: 0; border: 1px solid #d5dde8; border-radius: 6pt; overflow: hidden; background: #fff; }
+figure img { display: block; width: 100%; height: auto; }
+figcaption { font-size: 7.4pt; color: #475569; padding: 2pt 6pt 3pt; background: #f2f5f9; }
+.figs.one figure { max-width: 130mm; }
+
+/* Diagramm Endlosschleife */
+.loop { display: grid; gap: 5pt; margin: 6pt 0 3pt; }
+.lp { border-radius: 6pt; padding: 5pt 8pt; } .lp.bad { background: #fef2f2; } .lp.good { background: #f0fdf4; }
+.lt { font-size: 7.6pt; font-weight: 800; text-transform: uppercase; letter-spacing: .7pt; margin-bottom: 3pt; }
+.bad .lt { color: #b91c1c; } .good .lt { color: #15803d; }
+.flow { display: flex; align-items: center; gap: 4pt; flex-wrap: nowrap; }
+.flow span { flex: 1; background: #fff; border: 1px solid #d5dde8; border-radius: 5pt; padding: 3pt 5pt; font-size: 7.6pt; text-align: center; line-height: 1.3; }
+.flow span.warn { border-color: #f87171; background: #fff1f2; } .flow span.ok { border-color: #4ade80; background: #f0fdf4; }
+.flow i { font-style: normal; color: #64748b; font-size: 11pt; } .flow i.back { color: #b91c1c; font-weight: 700; }
+
+/* Erkenntnisse, Rollen */
+.ls { display: flex; gap: 8pt; background: #f2f5f9; border-radius: 8pt; padding: 5pt 9pt; margin: 0 0 4pt; break-inside: avoid; font-size: 8.7pt; line-height: 1.4; }
+.lsn { flex: 0 0 18pt; height: 18pt; border-radius: 50%; background: #3f5876; color: #fff; font-weight: 700; text-align: center; line-height: 18pt; }
+.roles, .role, .note { break-inside: avoid; }
+.roles { display: grid; grid-template-columns: 1fr 1fr; gap: 10pt; margin: 6pt 0; }
+.role { border: 1px solid #d5dde8; border-radius: 8pt; padding: 8pt 11pt; font-size: 9pt; }
+.role h4 { margin: 0 0 3pt; color: #2c3c50; font-size: 10pt; } .role ul { margin: 2pt 0 0; padding-left: 14pt; }
+.open li { margin: 2pt 0; list-style: none; margin-left: -14pt; }
+.box { display: inline-block; width: 8pt; height: 8pt; border: 1.3px solid #3f5876; border-radius: 2px; margin-right: 7pt; vertical-align: -1pt; }
+.glos { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18pt; font-size: 8pt; line-height: 1.34; }
+.gl { break-inside: avoid; margin-bottom: 2pt; } .gl b { color: #2c3c50; display: block; }
+.note { background: #fffbeb; border: 1px solid #fcd34d; border-radius: 6pt; padding: 6pt 10pt; font-size: 8.8pt; margin: 8pt 0; }
+</style></head><body>
+<h1>Worum geht es in diesem Dokument?</h1>
+<p>Wir haben eine <b>Web-App zur Verwaltung von Arztpraxen</b> entwickelt (Termine, Wartezimmer, Patientenakte, Benachrichtigungen). Dabei sind – wie bei jedem Lernprojekt – viele Fehler passiert. Dieses Dokument zeigt <b>jeden Fehler einzeln</b>: Was passiert ist, wie die Fehlermeldung lautete, woran es lag, wie wir ihn behoben haben und was wir daraus gelernt haben. Fehler sind hier kein Makel, sondern der Nachweis für den Lernprozess.</p>
+
+<div class="tiles">
+  <div class="tile"><b>19</b><span>Fehlerfälle dokumentiert</span></div>
+  <div class="tile"><b>13</b><span>gelöst und erneut getestet</span></div>
+  <div class="tile"><b>4</b><span>schwere Fehler (Wirkung „groß“)</span></div>
+  <div class="tile"><b>2</b><span>noch offen</span></div>
+</div>
+
+<h2>Die Zahlen auf einen Blick</h2>
+<div class="grid2">
+  <div><h3>Welche Art von Fehler?</h3><div class="bar"><div class="bl">Einstellung<span class="sub"></span></div><div class="bt"><div class="bf" style="width:37.5%;background:#d97706"></div></div><div class="bn">3</div></div><div class="bar"><div class="bl">Wissenslücke<span class="sub"></span></div><div class="bt"><div class="bf" style="width:100.0%;background:#2563eb"></div></div><div class="bn">8</div></div><div class="bar"><div class="bl">Denkfehler (Logik)<span class="sub"></span></div><div class="bt"><div class="bf" style="width:25.0%;background:#7c3aed"></div></div><div class="bn">2</div></div><div class="bar"><div class="bl">Vorgehen<span class="sub"></span></div><div class="bt"><div class="bf" style="width:12.5%;background:#0d9488"></div></div><div class="bn">1</div></div><div class="bar"><div class="bl">Sicherheit<span class="sub"></span></div><div class="bt"><div class="bf" style="width:12.5%;background:#dc2626"></div></div><div class="bn">1</div></div><div class="bar"><div class="bl">Grenzen des Systems<span class="sub"></span></div><div class="bt"><div class="bf" style="width:50.0%;background:#64748b"></div></div><div class="bn">4</div></div></div>
+  <div><h3>Wie ging es aus?</h3><div class="bar"><div class="bl">gelöst<span class="sub"></span></div><div class="bt"><div class="bf" style="width:100.0%;background:#15803d"></div></div><div class="bn">13</div></div><div class="bar"><div class="bl">vermieden<span class="sub"></span></div><div class="bt"><div class="bf" style="width:7.7%;background:#0369a1"></div></div><div class="bn">1</div></div><div class="bar"><div class="bl">umgangen<span class="sub"></span></div><div class="bt"><div class="bf" style="width:23.1%;background:#b45309"></div></div><div class="bn">3</div></div><div class="bar"><div class="bl">offen<span class="sub"></span></div><div class="bt"><div class="bf" style="width:15.4%;background:#b91c1c"></div></div><div class="bn">2</div></div>
+       <h3>Wer hat den Fehler entdeckt?</h3><div class="bar"><div class="bl">System<span class="sub"></span></div><div class="bt"><div class="bf" style="width:100.0%;background:#3f5876"></div></div><div class="bn">9</div></div><div class="bar"><div class="bl">Team<span class="sub"></span></div><div class="bt"><div class="bf" style="width:55.6%;background:#3f5876"></div></div><div class="bn">5</div></div><div class="bar"><div class="bl">KI<span class="sub"></span></div><div class="bt"><div class="bf" style="width:55.6%;background:#3f5876"></div></div><div class="bn">5</div></div>
+       <h3>Wie stark hat er uns aufgehalten?</h3><div class="bar"><div class="bl">Klein<span class="sub"></span></div><div class="bt"><div class="bf" style="width:100.0%;background:#3f5876"></div></div><div class="bn">9</div></div><div class="bar"><div class="bl">Mittel<span class="sub"></span></div><div class="bt"><div class="bf" style="width:66.7%;background:#3f5876"></div></div><div class="bn">6</div></div><div class="bar"><div class="bl">Groß<span class="sub"></span></div><div class="bt"><div class="bf" style="width:44.4%;background:#3f5876"></div></div><div class="bn">4</div></div></div>
+</div>
+<div class="note"><b>Auffällig:</b> Mit 8 von 19 Fällen waren <b>Wissenslücken bei neuen Werkzeugen</b> die häufigste Fehlerart. Nur 5 Fälle haben wir selbst beim Ausprobieren bemerkt, bei 9 hat das System den Fehler selbst gemeldet. <b>Genau lesen lohnt sich.</b></div>
+
+<h3 style="margin-top:10pt">Unser Ablauf bei jedem Fehler</h3>
+<div class="cycle" style="margin-top:4pt"><div class="cy"><div class="cn">1</div><div class="ct">Fehler bemerken</div><div class="cd">Meldung, rotes Feld, falsches Verhalten – oder eine Frage wie „Warum steht das da?“</div></div><div class="ca">›</div><div class="cy"><div class="cn">2</div><div class="ct">Meldung genau lesen</div><div class="cd">Der Text nennt oft schon Ort und Grund. Nichts raten.</div></div><div class="ca">›</div><div class="cy"><div class="cn">3</div><div class="ct">Ursache eingrenzen</div><div class="cd">Protokolle lesen, einen kleinen Test bauen, prüfen: Ist es der Test oder das Programm?</div></div><div class="ca">›</div><div class="cy"><div class="cn">4</div><div class="ct">Lösung umsetzen</div><div class="cd">Eine Sache nach der anderen ändern, nicht alles auf einmal.</div></div><div class="ca">›</div><div class="cy"><div class="cn">5</div><div class="ct">Erneut testen</div><div class="cd">Auch den Wiederholungsfall: Was passiert beim zweiten Klick?</div></div><div class="ca">›</div><div class="cy"><div class="cn">6</div><div class="ct">Gelerntes festhalten</div><div class="cd">In einem Satz aufschreiben – so wie in diesem Dokument.</div></div></div>
+
+<h2 class="pb">So liest du dieses Dokument</h2>
+<div class="legend">
+  <div><h3>Fehlerart</h3><div class="lg"><span class="chip" style="background:#d97706">Einstellung</span><div class="ld">Etwas war falsch eingestellt oder am falschen Ort eingetragen.</div></div><div class="lg"><span class="chip" style="background:#2563eb">Wissenslücke</span><div class="ld">Eine neue Technik oder Version funktioniert anders, als wir dachten.</div></div><div class="lg"><span class="chip" style="background:#7c3aed">Denkfehler (Logik)</span><div class="ld">Der Ablauf im Programm war nicht zu Ende gedacht.</div></div><div class="lg"><span class="chip" style="background:#0d9488">Vorgehen</span><div class="ld">Fehler in der Arbeitsweise, z. B. zu früh „fertig“ gemeldet.</div></div><div class="lg"><span class="chip" style="background:#dc2626">Sicherheit</span><div class="ld">Geheimes (Passwörter, Schlüssel) wurde nicht sicher behandelt.</div></div><div class="lg"><span class="chip" style="background:#64748b">Grenzen des Systems</span><div class="ld">Schutzregeln und Limits der benutzten Dienste.</div></div></div>
+  <div><h3>Ergebnis</h3><div class="lg"><span class="chip" style="background:#15803d">gelöst</span><div class="ld">Fehler behoben und danach erneut getestet.</div></div><div class="lg"><span class="chip" style="background:#0369a1">vermieden</span><div class="ld">Fehler ist gar nicht erst aufgetreten, weil wir vorher nachgelesen haben.</div></div><div class="lg"><span class="chip" style="background:#b45309">umgangen</span><div class="ld">Ursache bleibt bestehen, wir haben einen anderen Weg gefunden.</div></div><div class="lg"><span class="chip" style="background:#b91c1c">offen</span><div class="ld">Noch zu erledigen (siehe Abschnitt „Offene Punkte“).</div></div></div>
+  <div><h3>Entdeckt durch</h3><div class="lg"><span class="chip" style="background:#3f5876">System</span><div class="ld">Das System hat selbst eine Fehlermeldung ausgegeben (Build, Test, Datenbank).</div></div><div class="lg"><span class="chip" style="background:#3f5876">Team</span><div class="ld">Wir haben es beim Ausprobieren der laufenden App bzw. der Webseiten bemerkt.</div></div><div class="lg"><span class="chip" style="background:#3f5876">KI</span><div class="ld">Die KI hat es durch eigene Prüfung, Dokumentation oder Rückblick entdeckt.</div></div><h3>Wirkung</h3><div class="lg"><span><span class="dots">●<span class="off">●●</span></span> <span class="dots">●●<span class="off">●</span></span> <span class="dots">●●●<span class="off"></span></span></span><div class="ld">klein · mittel · groß: wie stark der Fehler das Projekt aufgehalten hat.</div></div></div>
+</div>
+
+<h2 style="margin-top:14pt">Alle Fehlerfälle auf einen Blick</h2>
+<p style="font-size:8.4pt;color:#64748b;margin:0 0 4pt">Ein Klick auf Nummer oder Titel springt zur ausführlichen Fehlerkarte.</p>
+<table class="ov"><thead><tr><th>#</th><th>Fehler</th><th>Art</th><th>Ergebnis</th><th>Entdeckt</th><th>Wirkung</th></tr></thead><tbody><tr><td class="c-id"><a href="#F1">F1</a></td><td><a href="#F1" class="tl">Fast gescheitert, aber vorher nachgelesen: Next.js 16 ist anders</a></td><td><span class="chip" style="background:#2563eb">Wissenslücke</span></td><td><span class="chip" style="background:#0369a1">vermieden</span></td><td>KI</td><td><span class="dots">●<span class="off">●●</span></span></td></tr><tr><td class="c-id"><a href="#F2">F2</a></td><td><a href="#F2" class="tl">Selbst gebaute Design-Klassen funktionierten nicht (Tailwind 4)</a></td><td><span class="chip" style="background:#2563eb">Wissenslücke</span></td><td><span class="chip" style="background:#15803d">gelöst</span></td><td>System</td><td><span class="dots">●●<span class="off">●</span></span></td></tr><tr><td class="c-id"><a href="#F3">F3</a></td><td><a href="#F3" class="tl">TypeScript meldete viele Typfehler bei den Seiten</a></td><td><span class="chip" style="background:#2563eb">Wissenslücke</span></td><td><span class="chip" style="background:#15803d">gelöst</span></td><td>System</td><td><span class="dots">●<span class="off">●●</span></span></td></tr><tr><td class="c-id"><a href="#F4">F4</a></td><td><a href="#F4" class="tl">Der Code-Prüfer (ESLint) fand 14 Verstöße</a></td><td><span class="chip" style="background:#2563eb">Wissenslücke</span></td><td><span class="chip" style="background:#15803d">gelöst</span></td><td>System</td><td><span class="dots">●<span class="off">●●</span></span></td></tr><tr><td class="c-id"><a href="#F5">F5</a></td><td><a href="#F5" class="tl">Der erste Datenbank-Test scheiterte am Test selbst</a></td><td><span class="chip" style="background:#d97706">Einstellung</span></td><td><span class="chip" style="background:#15803d">gelöst</span></td><td>System</td><td><span class="dots">●<span class="off">●●</span></span></td></tr><tr><td class="c-id"><a href="#F6">F6</a></td><td><a href="#F6" class="tl">Das Supabase-Projekt „Praxisverwaltung“ war nicht zu finden</a></td><td><span class="chip" style="background:#d97706">Einstellung</span></td><td><span class="chip" style="background:#15803d">gelöst</span></td><td>KI</td><td><span class="dots">●<span class="off">●●</span></span></td></tr><tr><td class="c-id"><a href="#F7">F7</a></td><td><a href="#F7" class="tl">Die KI darf sich selbst keine Dauer-Rechte geben</a></td><td><span class="chip" style="background:#64748b">Grenzen des Systems</span></td><td><span class="chip" style="background:#b45309">umgangen</span></td><td>System</td><td><span class="dots">●<span class="off">●●</span></span></td></tr><tr><td class="c-id"><a href="#F8">F8</a></td><td><a href="#F8" class="tl">Wir kommen nicht überall heran: gesperrtes Netz, unsichtbare Geheimnisse</a></td><td><span class="chip" style="background:#64748b">Grenzen des Systems</span></td><td><span class="chip" style="background:#b45309">umgangen</span></td><td>System</td><td><span class="dots">●<span class="off">●●</span></span></td></tr><tr><td class="c-id"><a href="#F9">F9</a></td><td><a href="#F9" class="tl">Die Webseite war nicht erreichbar: „Build Failed“ und 404</a></td><td><span class="chip" style="background:#2563eb">Wissenslücke</span></td><td><span class="chip" style="background:#15803d">gelöst</span></td><td>Team</td><td><span class="dots">●●●<span class="off"></span></span></td></tr><tr><td class="c-id"><a href="#F10">F10</a></td><td><a href="#F10" class="tl">SMTP-Einstellungen im falschen Supabase-Projekt</a></td><td><span class="chip" style="background:#d97706">Einstellung</span></td><td><span class="chip" style="background:#15803d">gelöst</span></td><td>KI</td><td><span class="dots">●●<span class="off">●</span></span></td></tr><tr><td class="c-id"><a href="#F11">F11</a></td><td><a href="#F11" class="tl">E-Mail über Gmail: Fehler 535 – „Passwort nicht akzeptiert“</a></td><td><span class="chip" style="background:#2563eb">Wissenslücke</span></td><td><span class="chip" style="background:#b91c1c">offen</span></td><td>Team</td><td><span class="dots">●●●<span class="off"></span></span></td></tr><tr><td class="c-id"><a href="#F12">F12</a></td><td><a href="#F12" class="tl">Registrierung bricht ab, und nur 2 Mails pro Stunde</a></td><td><span class="chip" style="background:#64748b">Grenzen des Systems</span></td><td><span class="chip" style="background:#b45309">umgangen</span></td><td>Team</td><td><span class="dots">●●<span class="off">●</span></span></td></tr><tr><td class="c-id"><a href="#F13">F13</a></td><td><a href="#F13" class="tl">SQL-Fehler beim Befüllen mit Testdaten</a></td><td><span class="chip" style="background:#2563eb">Wissenslücke</span></td><td><span class="chip" style="background:#15803d">gelöst</span></td><td>System</td><td><span class="dots">●<span class="off">●●</span></span></td></tr><tr><td class="c-id"><a href="#F14">F14</a></td><td><a href="#F14" class="tl">„Bad Gateway“ – hat das Skript etwas gespeichert?</a></td><td><span class="chip" style="background:#64748b">Grenzen des Systems</span></td><td><span class="chip" style="background:#15803d">gelöst</span></td><td>System</td><td><span class="dots">●●<span class="off">●</span></span></td></tr><tr><td class="c-id"><a href="#F15">F15</a></td><td><a href="#F15" class="tl">Logikfehler: Der Verzögerungs-Vorschlag erschien endlos</a></td><td><span class="chip" style="background:#7c3aed">Denkfehler (Logik)</span></td><td><span class="chip" style="background:#15803d">gelöst</span></td><td>Team</td><td><span class="dots">●●●<span class="off"></span></span></td></tr><tr><td class="c-id"><a href="#F16">F16</a></td><td><a href="#F16" class="tl">Anforderung vergessen: Öffnungszeiten wurden nicht geprüft</a></td><td><span class="chip" style="background:#7c3aed">Denkfehler (Logik)</span></td><td><span class="chip" style="background:#15803d">gelöst</span></td><td>Team</td><td><span class="dots">●●<span class="off">●</span></span></td></tr><tr><td class="c-id"><a href="#F17">F17</a></td><td><a href="#F17" class="tl">Zusammenführen scheiterte: Commit-Kennung zu kurz</a></td><td><span class="chip" style="background:#2563eb">Wissenslücke</span></td><td><span class="chip" style="background:#15803d">gelöst</span></td><td>System</td><td><span class="dots">●<span class="off">●●</span></span></td></tr><tr><td class="c-id"><a href="#F18">F18</a></td><td><a href="#F18" class="tl">Sicherheit: Passwort im Chat, Schlüssel im Protokoll</a></td><td><span class="chip" style="background:#dc2626">Sicherheit</span></td><td><span class="chip" style="background:#b91c1c">offen</span></td><td>KI</td><td><span class="dots">●●●<span class="off"></span></span></td></tr><tr><td class="c-id"><a href="#F19">F19</a></td><td><a href="#F19" class="tl">Fehler im Vorgehen: zu schnell veröffentlicht, zu früh „fertig“</a></td><td><span class="chip" style="background:#0d9488">Vorgehen</span></td><td><span class="chip" style="background:#15803d">gelöst</span></td><td>KI</td><td><span class="dots">●●<span class="off">●</span></span></td></tr></tbody></table>
+
+<h2 style="margin-top:16pt">Der Weg durch das Projekt</h2>
+<p>Die Reihenfolge ist ungefähr chronologisch. Uhrzeiten stammen von unseren Bildschirmfotos. Die Kürzel (F1 …) führen zu den Fehlerkarten, die Farbe zeigt die Fehlerart.</p>
+<div class="tl-item"><div class="dot none"></div><div class="tl-body"><div class="tl-h"><b>1. Planung</b> <span class="tm"></span></div><div class="tl-t">Lastenheft und Fragebogen mit 26 Fragen. Alle Anforderungen sind schriftlich festgehalten.</div></div></div><div class="tl-item"><div class="dot"></div><div class="tl-body"><div class="tl-h"><b>2. App-Gerüst bauen</b> <span class="tm"></span></div><div class="tl-t">Webseiten, Kalender, Termine, Patientenakte. Der Build zeigte die ersten Fehler.</div><div class="tl-f"><a href="#F1" class="fc" style="background:#2563eb">F1</a> <a href="#F2" class="fc" style="background:#2563eb">F2</a> <a href="#F3" class="fc" style="background:#2563eb">F3</a> <a href="#F4" class="fc" style="background:#2563eb">F4</a></div></div></div><div class="tl-item"><div class="dot"></div><div class="tl-body"><div class="tl-h"><b>3. Datenbank entwerfen und testen</b> <span class="tm"></span></div><div class="tl-t">Tabellen, Rechte (RLS), automatische Abläufe. Test in einer lokalen Test-Datenbank.</div><div class="tl-f"><a href="#F5" class="fc" style="background:#d97706">F5</a></div></div></div><div class="tl-item"><div class="dot"></div><div class="tl-body"><div class="tl-h"><b>4. Verbindung zu Supabase und Vercel</b> <span class="tm"></span></div><div class="tl-t">Projekt gesucht, Freigaben, Grenzen der Entwicklungsumgebung.</div><div class="tl-f"><a href="#F6" class="fc" style="background:#d97706">F6</a> <a href="#F7" class="fc" style="background:#64748b">F7</a> <a href="#F8" class="fc" style="background:#64748b">F8</a></div></div></div><div class="tl-item"><div class="dot"></div><div class="tl-body"><div class="tl-h"><b>5. Erstes Veröffentlichen</b> <span class="tm">19:33 Uhr</span></div><div class="tl-t">Die Webseite sollte online gehen.</div><div class="tl-f"><a href="#F9" class="fc" style="background:#2563eb">F9</a></div></div></div><div class="tl-item"><div class="dot"></div><div class="tl-body"><div class="tl-h"><b>6. E-Mail einrichten</b> <span class="tm">19:35–19:45 Uhr</span></div><div class="tl-t">Bestätigungs-Mails und Patienten-Benachrichtigungen.</div><div class="tl-f"><a href="#F10" class="fc" style="background:#d97706">F10</a> <a href="#F11" class="fc" style="background:#2563eb">F11</a> <a href="#F12" class="fc" style="background:#64748b">F12</a></div></div></div><div class="tl-item"><div class="dot"></div><div class="tl-body"><div class="tl-h"><b>7. Testdaten einspielen</b> <span class="tm"></span></div><div class="tl-t">24 Patienten, 53 Termine, Warteliste, Aufgaben.</div><div class="tl-f"><a href="#F13" class="fc" style="background:#2563eb">F13</a> <a href="#F14" class="fc" style="background:#64748b">F14</a></div></div></div><div class="tl-item"><div class="dot"></div><div class="tl-body"><div class="tl-h"><b>8. Ausprobieren in der laufenden App</b> <span class="tm">20:56 Uhr</span></div><div class="tl-t">Das Team testet Verzögerung, Wartezimmer, Kalender.</div><div class="tl-f"><a href="#F15" class="fc" style="background:#7c3aed">F15</a> <a href="#F16" class="fc" style="background:#7c3aed">F16</a></div></div></div><div class="tl-item"><div class="dot"></div><div class="tl-body"><div class="tl-h"><b>9. Zusammenführen und Rückblick</b> <span class="tm"></span></div><div class="tl-t">Veröffentlichen nach main, Sicherheit prüfen, Vorgehen bewerten.</div><div class="tl-f"><a href="#F17" class="fc" style="background:#2563eb">F17</a> <a href="#F18" class="fc" style="background:#dc2626">F18</a> <a href="#F19" class="fc" style="background:#0d9488">F19</a></div></div></div>
+
+
+<h2 class="pb">Die Fehlerkarten</h2>
+<p style="font-size:8.8pt;color:#475569">Jede Karte folgt demselben Aufbau: <b>Was ist passiert?</b> → <b>Fehlermeldung</b> → <b>Ursache</b> und <b>Lösung</b> → <b>Gelernt</b>. Bildschirmfotos stammen aus der echten Arbeit; E-Mail-Adressen, Benutzernamen und Passwörter wurden geschwärzt bzw. nicht verwendet.</p>
+
+<section class="case" id="F1" style="--cc:#2563eb">
+  <div class="ch">
+    <div class="num">F1</div>
+    <div class="ttl">Fast gescheitert, aber vorher nachgelesen: Next.js 16 ist anders</div>
+  </div>
+  <div class="meta">
+    <span class="chip" style="background:#2563eb">Wissenslücke</span> <span class="chip" style="background:#0369a1">vermieden</span>
+    <span class="m">Entdeckt durch: <b>KI</b></span>
+    <span class="m">Wirkung: <span class="dots">●<span class="off">●●</span></span> <b>klein</b></span>
+  </div>
+  <div class="blk"><span class="lbl">Was ist passiert?</span>Für die App nutzen wir das Framework Next.js in der neuen Version 16. Die KI kennt vor allem ältere Versionen. Eine wichtige Datei heißt in Version 16 zum Beispiel nicht mehr <code>middleware.ts</code>, sondern <code>proxy.ts</code>.</div>
+  <div class="msg"><span class="lbl">Fehlermeldung</span><code>This is NOT the Next.js you know. This version has breaking changes … Read the relevant guide in node_modules/next/dist/docs/</code></div>
+  <div class="two">
+    <div class="blk cause"><span class="lbl">Ursache</span>Das Wissen der KI stammt teilweise aus älteren Versionen. Frameworks ändern sich schneller als das Wissen, das man im Kopf hat.</div>
+    <div class="blk fix"><span class="lbl">Lösung / Umgang</span>Bevor programmiert wurde, wurde die mitgelieferte Dokumentation gelesen. Danach haben wir <code>proxy.ts</code> und die neuen Seiten-Typen verwendet.</div>
+  </div>
+  
+  
+  <div class="lesson"><span class="lbl">Gelernt</span>Fehler vermeiden ist besser als Fehler beheben: Bei neuen Versionen zuerst die passende Dokumentation lesen.</div>
+</section>
+<section class="case" id="F2" style="--cc:#2563eb">
+  <div class="ch">
+    <div class="num">F2</div>
+    <div class="ttl">Selbst gebaute Design-Klassen funktionierten nicht (Tailwind 4)</div>
+  </div>
+  <div class="meta">
+    <span class="chip" style="background:#2563eb">Wissenslücke</span> <span class="chip" style="background:#15803d">gelöst</span>
+    <span class="m">Entdeckt durch: <b>System</b></span>
+    <span class="m">Wirkung: <span class="dots">●●<span class="off">●</span></span> <b>mittel</b></span>
+  </div>
+  <div class="blk"><span class="lbl">Was ist passiert?</span>Das Erzeugen der App brach ab. Alle unsere Buttons, Karten und Eingabefelder (<code>.btn</code>, <code>.card</code>, <code>.input</code>) wurden nicht erkannt.</div>
+  <div class="msg"><span class="lbl">Fehlermeldung</span><code>Error: Cannot apply unknown utility class `btn`</code></div>
+  <div class="two">
+    <div class="blk cause"><span class="lbl">Ursache</span>In Tailwind CSS 4 müssen eigene Klassen anders definiert werden als in Version 3. Wir haben noch die alte Schreibweise benutzt.</div>
+    <div class="blk fix"><span class="lbl">Lösung / Umgang</span>Alle eigenen Klassen in <code>globals.css</code> auf die neue Schreibweise <code>@utility</code> umgestellt. Danach lief der Build durch.</div>
+  </div>
+  
+  
+  <div class="lesson"><span class="lbl">Gelernt</span>Die Fehlermeldung nennt oft schon die genaue Stelle. Genau lesen spart Suchzeit.</div>
+</section>
+<section class="case" id="F3" style="--cc:#2563eb">
+  <div class="ch">
+    <div class="num">F3</div>
+    <div class="ttl">TypeScript meldete viele Typfehler bei den Seiten</div>
+  </div>
+  <div class="meta">
+    <span class="chip" style="background:#2563eb">Wissenslücke</span> <span class="chip" style="background:#15803d">gelöst</span>
+    <span class="m">Entdeckt durch: <b>System</b></span>
+    <span class="m">Wirkung: <span class="dots">●<span class="off">●●</span></span> <b>klein</b></span>
+  </div>
+  <div class="blk"><span class="lbl">Was ist passiert?</span>Der Typ-Check meldete bei fast jeder Seite einen Fehler.</div>
+  <div class="msg"><span class="lbl">Fehlermeldung</span><code>Type &#x27;&quot;/aufgaben&quot;&#x27; does not satisfy the constraint &#x27;&quot;/&quot;&#x27;</code></div>
+  <div class="two">
+    <div class="blk cause"><span class="lbl">Ursache</span>Die Typen für die Seiten-Adressen werden von Next.js automatisch erzeugt. Diese Dateien waren veraltet bzw. noch nicht vorhanden – der Fehler lag nicht in unserem Code.</div>
+    <div class="blk fix"><span class="lbl">Lösung / Umgang</span>Zwischenordner <code>.next</code> gelöscht und den Befehl <code>next typegen</code> ausgeführt. Einen echten Typfehler (<code>undefined</code> statt Text) haben wir zusätzlich von Hand korrigiert.</div>
+  </div>
+  
+  
+  <div class="lesson"><span class="lbl">Gelernt</span>Nicht jeder Fehler steckt im eigenen Code. Manchmal sind automatisch erzeugte Dateien veraltet: neu erzeugen.</div>
+</section>
+<section class="case" id="F4" style="--cc:#2563eb">
+  <div class="ch">
+    <div class="num">F4</div>
+    <div class="ttl">Der Code-Prüfer (ESLint) fand 14 Verstöße</div>
+  </div>
+  <div class="meta">
+    <span class="chip" style="background:#2563eb">Wissenslücke</span> <span class="chip" style="background:#15803d">gelöst</span>
+    <span class="m">Entdeckt durch: <b>System</b></span>
+    <span class="m">Wirkung: <span class="dots">●<span class="off">●●</span></span> <b>klein</b></span>
+  </div>
+  <div class="blk"><span class="lbl">Was ist passiert?</span>Ein automatischer Code-Prüfer meldete 14 Probleme in drei Arten.</div>
+  <div class="msg"><span class="lbl">Fehlermeldung</span><code>Components created during render · setState synchronously within an effect · Do not use an &lt;a&gt; element to navigate</code></div>
+  <div class="two">
+    <div class="blk cause"><span class="lbl">Ursache</span>Wir hatten kleine Bausteine <i>innerhalb</i> anderer Bausteine definiert (sie werden dadurch bei jeder Anzeige neu gebaut), einen Wert direkt in einem Effekt gesetzt und normale Links statt der App-Links benutzt.</div>
+    <div class="blk fix"><span class="lbl">Lösung / Umgang</span>Bausteine nach außen verlagert, den Effekt begründet freigestellt und <code>&lt;Link&gt;</code> verwendet.</div>
+  </div>
+  
+  
+  <div class="lesson"><span class="lbl">Gelernt</span>Ein Code-Prüfer ist wie ein Korrekturleser: Er findet Muster, die später zu echten Fehlern führen.</div>
+</section>
+<section class="case" id="F5" style="--cc:#d97706">
+  <div class="ch">
+    <div class="num">F5</div>
+    <div class="ttl">Der erste Datenbank-Test scheiterte am Test selbst</div>
+  </div>
+  <div class="meta">
+    <span class="chip" style="background:#d97706">Einstellung</span> <span class="chip" style="background:#15803d">gelöst</span>
+    <span class="m">Entdeckt durch: <b>System</b></span>
+    <span class="m">Wirkung: <span class="dots">●<span class="off">●●</span></span> <b>klein</b></span>
+  </div>
+  <div class="blk"><span class="lbl">Was ist passiert?</span>Beim Prüfen der Datenbank-Dateien in einer lokalen Test-Datenbank brach der Test ab.</div>
+  <div class="msg"><span class="lbl">Fehlermeldung</span><code>error: permission denied for table staff</code></div>
+  <div class="two">
+    <div class="blk cause"><span class="lbl">Ursache</span>Nicht die Datenbank-Dateien waren falsch, sondern unser <i>Testaufbau</i>: Ihm fehlten Standard-Rechte, die das echte Supabase automatisch hat.</div>
+    <div class="blk fix"><span class="lbl">Lösung / Umgang</span>Die fehlenden Rechte im Test ergänzt. Danach liefen dieselben Dateien sowohl im Test als auch im echten Supabase-Projekt. Der Test prüfte u. a.: Eine fremde Praxis sieht keine Patienten.</div>
+  </div>
+  
+  
+  <div class="lesson"><span class="lbl">Gelernt</span>Wenn ein Test scheitert, zuerst fragen: Ist der <i>Test</i> falsch oder das <i>Programm</i>?</div>
+</section>
+<section class="case" id="F6" style="--cc:#d97706">
+  <div class="ch">
+    <div class="num">F6</div>
+    <div class="ttl">Das Supabase-Projekt „Praxisverwaltung“ war nicht zu finden</div>
+  </div>
+  <div class="meta">
+    <span class="chip" style="background:#d97706">Einstellung</span> <span class="chip" style="background:#15803d">gelöst</span>
+    <span class="m">Entdeckt durch: <b>KI</b></span>
+    <span class="m">Wirkung: <span class="dots">●<span class="off">●●</span></span> <b>klein</b></span>
+  </div>
+  <div class="blk"><span class="lbl">Was ist passiert?</span>Die Datenbank sollte in einem Supabase-Projekt „Praxisverwaltung“ liegen. Die Abfrage der Projekte zeigte aber nur ein anderes Projekt.</div>
+  <div class="msg"><span class="lbl">Fehlermeldung</span><code>Projekte: [ Lagerverwaltung-MBG ]</code></div>
+  <div class="two">
+    <div class="blk cause"><span class="lbl">Ursache</span>Das neue Projekt war zu diesem Zeitpunkt noch nicht angelegt bzw. noch nicht mit dem Werkzeug verbunden.</div>
+    <div class="blk fix"><span class="lbl">Lösung / Umgang</span>Nach dem Anlegen die Liste erneut abgefragt: jetzt erschien „Praxisverwaltung“ (Region Irland, also in der EU). Bevor etwas gespeichert wurde, prüften wir, dass das Projekt wirklich leer ist.</div>
+  </div>
+  
+  
+  <div class="lesson"><span class="lbl">Gelernt</span>Immer zuerst prüfen, ob man im <i>richtigen</i> Projekt arbeitet – sonst landen Tabellen und Daten im falschen System.</div>
+</section>
+<section class="case" id="F7" style="--cc:#64748b">
+  <div class="ch">
+    <div class="num">F7</div>
+    <div class="ttl">Die KI darf sich selbst keine Dauer-Rechte geben</div>
+  </div>
+  <div class="meta">
+    <span class="chip" style="background:#64748b">Grenzen des Systems</span> <span class="chip" style="background:#b45309">umgangen</span>
+    <span class="m">Entdeckt durch: <b>System</b></span>
+    <span class="m">Wirkung: <span class="dots">●<span class="off">●●</span></span> <b>klein</b></span>
+  </div>
+  <div class="blk"><span class="lbl">Was ist passiert?</span>Bei jeder Aktion in Supabase und Vercel fragte das System: „Darf Claude … verwenden?“. Wir wollten das abschalten. Die KI versuchte, selbst eine Einstellungsdatei mit Freigaben ins Projekt zu legen – das wurde automatisch blockiert.</div>
+  <div class="msg"><span class="lbl">Fehlermeldung</span><code>Permission for this action was denied by the Claude Code auto mode classifier.</code></div>
+  <div class="two">
+    <div class="blk cause"><span class="lbl">Ursache</span>Das ist eine gewollte Schutzregel: Eine KI darf ihre eigenen Berechtigungen nicht selbst erweitern.</div>
+    <div class="blk fix"><span class="lbl">Lösung / Umgang</span>Die Datei wurde wieder entfernt. Dauerhafte Freigaben stellt der Mensch selbst im Menü neben dem Eingabefeld ein.</div>
+  </div>
+  
+  
+  <div class="lesson"><span class="lbl">Gelernt</span>Berechtigungen gehören dem Menschen. Eine Sperre kann ein Schutz sein und kein Fehler.</div>
+</section>
+<section class="case" id="F8" style="--cc:#64748b">
+  <div class="ch">
+    <div class="num">F8</div>
+    <div class="ttl">Wir kommen nicht überall heran: gesperrtes Netz, unsichtbare Geheimnisse</div>
+  </div>
+  <div class="meta">
+    <span class="chip" style="background:#64748b">Grenzen des Systems</span> <span class="chip" style="background:#b45309">umgangen</span>
+    <span class="m">Entdeckt durch: <b>System</b></span>
+    <span class="m">Wirkung: <span class="dots">●<span class="off">●●</span></span> <b>klein</b></span>
+  </div>
+  <div class="blk"><span class="lbl">Was ist passiert?</span>Ein lokaler Test gegen die echte Datenbank scheiterte. Außerdem konnte man geheime Einstellungen (z. B. Passwörter) in Vercel nicht auslesen.</div>
+  <div class="msg"><span class="lbl">Fehlermeldung</span><code>…supabase.co:443 – connect_rejected (the egress proxy refused the connection)</code></div>
+  <div class="two">
+    <div class="blk cause"><span class="lbl">Ursache</span>Die Entwicklungsumgebung darf nur freigegebene Server erreichen. Geheime Variablen zeigen aus Sicherheitsgründen keinen Wert an, auch nicht dem Besitzer.</div>
+    <div class="blk fix"><span class="lbl">Lösung / Umgang</span>Statt lokal zu testen haben wir die veröffentlichte Seite geprüft und die Datenbank über ein freigegebenes Werkzeug getestet. Ob ein Passwort stimmt, zeigt nur ein echter Versuch.</div>
+  </div>
+  
+  
+  <div class="lesson"><span class="lbl">Gelernt</span>Ist der direkte Weg gesperrt, einen anderen Weg zum gleichen Ziel suchen – die Sperre nie umgehen.</div>
+</section>
+<section class="case" id="F9" style="--cc:#2563eb">
+  <div class="ch">
+    <div class="num">F9</div>
+    <div class="ttl">Die Webseite war nicht erreichbar: „Build Failed“ und 404</div>
+  </div>
+  <div class="meta">
+    <span class="chip" style="background:#2563eb">Wissenslücke</span> <span class="chip" style="background:#15803d">gelöst</span>
+    <span class="m">Entdeckt durch: <b>Team</b></span>
+    <span class="m">Wirkung: <span class="dots">●●●<span class="off"></span></span> <b>groß</b></span>
+  </div>
+  <div class="blk"><span class="lbl">Was ist passiert?</span>Beim ersten Veröffentlichen zeigte Vercel einen roten Fehler, die Adresse lieferte „404 – diese Seite existiert nicht“. Wir klickten mehrmals auf <b>Redeploy</b> – es blieb gleich.</div>
+  <div class="msg"><span class="lbl">Fehlermeldung</span><code>Error: [NEXT_NO_VERSION] No Next.js version detected   ·   404: NOT_FOUND</code></div>
+  <div class="two">
+    <div class="blk cause"><span class="lbl">Ursache</span>Auf dem Hauptzweig <code>main</code> lagen zu diesem Zeitpunkt nur Lastenheft und Fragebogen, <b>noch kein Programmcode</b>. „Redeploy“ baut immer den <i>alten</i> Stand noch einmal. Dazu war im Vercel-Projekt noch kein Framework eingestellt. Die Vorschau-Adresse zeigte kurz auf den alten Build und lieferte deshalb auch 404.</div>
+    <div class="blk fix"><span class="lbl">Lösung / Umgang</span>Vercel auf Next.js, Node 24 und Region Frankfurt eingestellt und den Pull Request mit dem Programmcode nach <code>main</code> zusammengeführt (Merge). Danach baute Vercel automatisch neu – fehlerfrei. Die Registrierungsseite war erreichbar.</div>
+  </div>
+  
+  <div class="figs"><figure><img src="images/build-failed.png" alt="Abb. 1 – Vercel: „Build Failed“ (Foto von 19:33 Uhr)"><figcaption>Abb. 1 – Vercel: „Build Failed“ (Foto von 19:33 Uhr)</figcaption></figure><figure><img src="images/build-log.png" alt="Abb. 2 – Build-Protokoll: Fehler NEXT_NO_VERSION"><figcaption>Abb. 2 – Build-Protokoll: Fehler NEXT_NO_VERSION</figcaption></figure><figure><img src="images/redeploy-liste.png" alt="Abb. 3 – Mehrfaches „Redeploy“ desselben alten Stands"><figcaption>Abb. 3 – Mehrfaches „Redeploy“ desselben alten Stands</figcaption></figure><figure><img src="images/404.png" alt="Abb. 4 – Ergebnis im Browser: 404"><figcaption>Abb. 4 – Ergebnis im Browser: 404</figcaption></figure></div>
+  <div class="lesson"><span class="lbl">Gelernt</span>„Redeploy“ ändert nichts am Inhalt. Neue Änderungen kommen nur über einen <b>neuen Commit auf <code>main</code></b>. Und: Manchmal genügt Abwarten, bis der neue Build fertig ist.</div>
+</section>
+<section class="case" id="F10" style="--cc:#d97706">
+  <div class="ch">
+    <div class="num">F10</div>
+    <div class="ttl">SMTP-Einstellungen im falschen Supabase-Projekt</div>
+  </div>
+  <div class="meta">
+    <span class="chip" style="background:#d97706">Einstellung</span> <span class="chip" style="background:#15803d">gelöst</span>
+    <span class="m">Entdeckt durch: <b>KI</b></span>
+    <span class="m">Wirkung: <span class="dots">●●<span class="off">●</span></span> <b>mittel</b></span>
+  </div>
+  <div class="blk"><span class="lbl">Was ist passiert?</span>Auf dem Foto der E-Mail-Einstellungen stand oben links „Lagerverwaltung-MBG“ statt „Praxisverwaltung“.</div>
+  
+  <div class="two">
+    <div class="blk cause"><span class="lbl">Ursache</span>Zwei Supabase-Projekte lagen im selben Konto nebeneinander und wurden verwechselt. Die Einstellung hätte sonst dazu geführt, dass die <i>Lager-App</i> ihre Login-Mails als „Praxis Verwaltung“ verschickt.</div>
+    <div class="blk fix"><span class="lbl">Lösung / Umgang</span>Einstellungen im richtigen Projekt gemacht und im falschen den benutzerdefinierten E-Mail-Versand wieder ausgeschaltet.</div>
+  </div>
+  
+  <div class="figs one"><figure><img src="images/falsches-projekt.png" alt="Abb. 5 – Adresszeile und Projektname zeigen „Lagerverwaltung-MBG“ (E-Mail-Adresse geschwärzt)"><figcaption>Abb. 5 – Adresszeile und Projektname zeigen „Lagerverwaltung-MBG“ (E-Mail-Adresse geschwärzt)</figcaption></figure></div>
+  <div class="lesson"><span class="lbl">Gelernt</span>Vor jeder Einstellung oben links prüfen, in welchem Projekt man ist. Ein Foto der Seite ist ein guter Beweis.</div>
+</section>
+<section class="case" id="F11" style="--cc:#2563eb">
+  <div class="ch">
+    <div class="num">F11</div>
+    <div class="ttl">E-Mail über Gmail: Fehler 535 – „Passwort nicht akzeptiert“</div>
+  </div>
+  <div class="meta">
+    <span class="chip" style="background:#2563eb">Wissenslücke</span> <span class="chip" style="background:#b91c1c">offen</span>
+    <span class="m">Entdeckt durch: <b>Team</b></span>
+    <span class="m">Wirkung: <span class="dots">●●●<span class="off"></span></span> <b>groß</b></span>
+  </div>
+  <div class="blk"><span class="lbl">Was ist passiert?</span>Beim Registrieren erschien „Error sending confirmation email“. Es kam keine Bestätigungs-Mail an – bei mehreren Versuchen.</div>
+  <div class="msg"><span class="lbl">Fehlermeldung</span><code>535 5.7.8 Username and Password not accepted</code></div>
+  <div class="two">
+    <div class="blk cause"><span class="lbl">Ursache</span>Eingetragen war das <i>normale</i> Gmail-Passwort. Google erlaubt für Programme nur ein spezielles <b>App-Passwort</b>, und das gibt es erst mit „Bestätigung in zwei Schritten“ – meist mit Telefonnummer. Wir wollten das Konto nicht mit einer Telefonnummer verknüpfen. Die genaue Ursache stand im Protokoll von Supabase, nicht auf der Webseite.</div>
+    <div class="blk fix"><span class="lbl">Lösung / Umgang</span>Gmail aufgegeben. Alternativen verglichen (Brevo, Mailjet, Resend, eigene Domain). Für den Test die Bestätigungs-Mail abgeschaltet bzw. den eingebauten Versand von Supabase genutzt. <b>Endgültiger Absender steht noch aus.</b></div>
+  </div>
+  
+  <div class="figs one"><figure><img src="images/registrierung-fehler.png" alt="Abb. 6 – Fehlermeldung beim Registrieren (19:45 Uhr)"><figcaption>Abb. 6 – Fehlermeldung beim Registrieren (19:45 Uhr)</figcaption></figure></div>
+  <div class="lesson"><span class="lbl">Gelernt</span>Die genaue Ursache steht oft im Protokoll des Systems. Und: Nicht jeder Dienst ist für jeden Zweck gedacht – ein persönliches Gmail-Konto ist kein Server für automatische Mails.</div>
+</section>
+<section class="case" id="F12" style="--cc:#64748b">
+  <div class="ch">
+    <div class="num">F12</div>
+    <div class="ttl">Registrierung bricht ab, und nur 2 Mails pro Stunde</div>
+  </div>
+  <div class="meta">
+    <span class="chip" style="background:#64748b">Grenzen des Systems</span> <span class="chip" style="background:#b45309">umgangen</span>
+    <span class="m">Entdeckt durch: <b>Team</b></span>
+    <span class="m">Wirkung: <span class="dots">●●<span class="off">●</span></span> <b>mittel</b></span>
+  </div>
+  <div class="blk"><span class="lbl">Was ist passiert?</span>Solange der Mailversand scheiterte, kam keine Registrierung zustande. Mit dem eingebauten Versand von Supabase gingen nur sehr wenige Mails pro Stunde.</div>
+  <div class="msg"><span class="lbl">Fehlermeldung</span><code>Email limiter: 30 → 2/1h (Supabase-Protokoll, sobald kein eigener SMTP aktiv ist)</code></div>
+  <div class="two">
+    <div class="blk cause"><span class="lbl">Ursache</span>Supabase nimmt die ganze Registrierung zurück, wenn die Bestätigungs-Mail nicht rausgeht (es entsteht dann kein Benutzer). Der eingebaute Versand ist absichtlich stark begrenzt (Missbrauchsschutz).</div>
+    <div class="blk fix"><span class="lbl">Lösung / Umgang</span>Für die Testphase „Confirm email“ ausschalten, später einen eigenen Absender einrichten.</div>
+  </div>
+  
+  
+  <div class="lesson"><span class="lbl">Gelernt</span>Grenzen eines Dienstes vor dem Testen nachlesen.</div>
+</section>
+<section class="case" id="F13" style="--cc:#2563eb">
+  <div class="ch">
+    <div class="num">F13</div>
+    <div class="ttl">SQL-Fehler beim Befüllen mit Testdaten</div>
+  </div>
+  <div class="meta">
+    <span class="chip" style="background:#2563eb">Wissenslücke</span> <span class="chip" style="background:#15803d">gelöst</span>
+    <span class="m">Entdeckt durch: <b>System</b></span>
+    <span class="m">Wirkung: <span class="dots">●<span class="off">●●</span></span> <b>klein</b></span>
+  </div>
+  <div class="blk"><span class="lbl">Was ist passiert?</span>Zwei Skripte zum Einfügen der Testdaten brachen ab.</div>
+  <div class="msg"><span class="lbl">Fehlermeldung</span><code>return type mismatch … Final statement returns text instead of uuid   ·   column reference &quot;status&quot; is ambiguous</code></div>
+  <div class="two">
+    <div class="blk cause"><span class="lbl">Ursache</span>(1) In einer Wertetabelle war nur die erste Zeile als <code>uuid</code> gekennzeichnet – die Datenbank hielt die ganze Spalte für Text. (2) Ein Parameter hieß genauso wie eine Tabellenspalte, die Datenbank wusste nicht, welche gemeint war.</div>
+    <div class="blk fix"><span class="lbl">Lösung / Umgang</span>(1) Typen ausdrücklich festgelegt. (2) Parameter umbenannt (<code>p_st</code>). Beide Skripte brachen vollständig ab, es wurde also nichts halb gespeichert.</div>
+  </div>
+  
+  
+  <div class="lesson"><span class="lbl">Gelernt</span>Namen eindeutig wählen. Datenbanken führen eine Anweisung ganz oder gar nicht aus (Transaktion).</div>
+</section>
+<section class="case" id="F14" style="--cc:#64748b">
+  <div class="ch">
+    <div class="num">F14</div>
+    <div class="ttl">„Bad Gateway“ – hat das Skript etwas gespeichert?</div>
+  </div>
+  <div class="meta">
+    <span class="chip" style="background:#64748b">Grenzen des Systems</span> <span class="chip" style="background:#15803d">gelöst</span>
+    <span class="m">Entdeckt durch: <b>System</b></span>
+    <span class="m">Wirkung: <span class="dots">●●<span class="off">●</span></span> <b>mittel</b></span>
+  </div>
+  <div class="blk"><span class="lbl">Was ist passiert?</span>Ein großes Skript meldete einen Verbindungsabbruch. Niemand wusste, ob schon Daten gespeichert wurden.</div>
+  <div class="msg"><span class="lbl">Fehlermeldung</span><code>The outcome is unknown: the call may have finished, may still be running, or may never have started.</code></div>
+  <div class="two">
+    <div class="blk cause"><span class="lbl">Ursache</span>Die Verbindung zwischen den Systemen brach ab, bevor eine Antwort ankam.</div>
+    <div class="blk fix"><span class="lbl">Lösung / Umgang</span>Nicht blind wiederholt, sondern mit Zählabfragen geprüft, was angekommen war: nichts vom großen Skript. Danach in drei kleinere Pakete geteilt.</div>
+  </div>
+  
+  
+  <div class="lesson"><span class="lbl">Gelernt</span>Bei unklarem Ausgang erst nachsehen, dann wiederholen – sonst entstehen doppelte Daten. Kleine Schritte sind robuster.</div>
+</section>
+<section class="case pbc" id="F15" style="--cc:#7c3aed">
+  <div class="ch">
+    <div class="num">F15</div>
+    <div class="ttl">Logikfehler: Der Verzögerungs-Vorschlag erschien endlos</div>
+  </div>
+  <div class="meta">
+    <span class="chip" style="background:#7c3aed">Denkfehler (Logik)</span> <span class="chip" style="background:#15803d">gelöst</span>
+    <span class="m">Entdeckt durch: <b>Team</b></span>
+    <span class="m">Wirkung: <span class="dots">●●●<span class="off"></span></span> <b>groß</b></span>
+  </div>
+  <div class="blk"><span class="lbl">Was ist passiert?</span>Der gelbe Kasten „Verzögerung erkannt“ blieb nach „Verschieben & informieren“ stehen. Mit jedem Klick rutschten die Termine weiter nach hinten – bis 23:30 und 23:55 Uhr.</div>
+  
+  <div class="two">
+    <div class="blk cause"><span class="lbl">Ursache</span>Die Erkennung prüfte nur: <i>„Überzieht die laufende Behandlung?“</i> Das bleibt wahr, solange die Behandlung läuft. Ob die Folgetermine schon verschoben waren, wurde nie geprüft. Das Programm kannte seinen <b>eigenen Zustand</b> nicht.</div>
+    <div class="blk fix"><span class="lbl">Lösung / Umgang</span>Neue Regel: Nur wenn der <i>nächste Termin vor dem frühestmöglichen Freiwerden</i> des Arztes liegt, ist er verspätet. Es werden nur Termine verschoben, die sonst kollidieren würden. Dazu Schutz gegen Doppelklick. Mit fünf Testfällen geprüft, die Testdaten zurückgesetzt.</div>
+  </div>
+  
+<div class="loop">
+  <div class="lp bad"><div class="lt">Vorher (Fehler)</div>
+    <div class="flow"><span>Klick „Verschieben“</span><i>→</i><span>Termine rücken nach hinten</span><i>→</i><span class="warn">Prüfung: „Überzieht die Behandlung?“ <b>Ja</b> (immer noch)</span><i>→</i><span class="warn">Kasten erscheint wieder</span><i class="back">↺</i></div></div>
+  <div class="lp good"><div class="lt">Nachher (behoben)</div>
+    <div class="flow"><span>Klick „Verschieben“</span><i>→</i><span>Termine rücken nach hinten</span><i>→</i><span class="ok">Prüfung: „Liegt der nächste Termin noch zu früh?“ <b>Nein</b></span><i>→</i><span class="ok">Kasten verschwindet</span></div></div>
+</div>
+  <div class="figs one"><figure><img src="images/verzoegerung-1.png" alt="Abb. 7 – Vorher: Braun 23:05, Krüger 23:30, Lange 23:55 (Foto 20:56 Uhr)"><figcaption>Abb. 7 – Vorher: Braun 23:05, Krüger 23:30, Lange 23:55 (Foto 20:56 Uhr)</figcaption></figure><figure><img src="images/verzoegerung-2.png" alt="Abb. 8 – Nach Klick: Termine schon später, Kasten trotzdem wieder da"><figcaption>Abb. 8 – Nach Klick: Termine schon später, Kasten trotzdem wieder da</figcaption></figure></div>
+  <div class="lesson"><span class="lbl">Gelernt</span>Automatiken müssen wissen, was schon erledigt ist. Immer auch den <b>zweiten Durchlauf</b> testen: „Was passiert beim nächsten Klick?“</div>
+</section>
+<section class="case" id="F16" style="--cc:#7c3aed">
+  <div class="ch">
+    <div class="num">F16</div>
+    <div class="ttl">Anforderung vergessen: Öffnungszeiten wurden nicht geprüft</div>
+  </div>
+  <div class="meta">
+    <span class="chip" style="background:#7c3aed">Denkfehler (Logik)</span> <span class="chip" style="background:#15803d">gelöst</span>
+    <span class="m">Entdeckt durch: <b>Team</b></span>
+    <span class="m">Wirkung: <span class="dots">●●<span class="off">●</span></span> <b>mittel</b></span>
+  </div>
+  <div class="blk"><span class="lbl">Was ist passiert?</span>Wir fragten: „Warum stehen um 21 Uhr noch Termine, obwohl um 18 Uhr geschlossen ist?“</div>
+  
+  <div class="two">
+    <div class="blk cause"><span class="lbl">Ursache</span>Die Abendtermine waren absichtlich als Live-Testdaten angelegt, damit Verzögerung und Wartezimmer sofort testbar sind. Dabei fiel auf: Die App prüfte zwar Doppelbuchungen und Abwesenheiten, aber <b>nicht die Öffnungszeiten</b>.</div>
+    <div class="blk fix"><span class="lbl">Lösung / Umgang</span>Neue Prüfung: „Außerhalb der Öffnungszeiten (an diesem Tag: 08:00–12:00, 14:00–18:00 Uhr)“. Mit „Trotzdem speichern“ bleibt es für Notfälle, Hausbesuche und Abendsprechstunden möglich.</div>
+  </div>
+  
+  
+  <div class="lesson"><span class="lbl">Gelernt</span>Testdaten zeigen Lücken in den Anforderungen. Prüfungen sollten warnen und Ausnahmen erlauben, nicht alles verbieten.</div>
+</section>
+<section class="case" id="F17" style="--cc:#2563eb">
+  <div class="ch">
+    <div class="num">F17</div>
+    <div class="ttl">Zusammenführen scheiterte: Commit-Kennung zu kurz</div>
+  </div>
+  <div class="meta">
+    <span class="chip" style="background:#2563eb">Wissenslücke</span> <span class="chip" style="background:#15803d">gelöst</span>
+    <span class="m">Entdeckt durch: <b>System</b></span>
+    <span class="m">Wirkung: <span class="dots">●<span class="off">●●</span></span> <b>klein</b></span>
+  </div>
+  <div class="blk"><span class="lbl">Was ist passiert?</span>Der Merge eines Pull Requests wurde abgelehnt.</div>
+  <div class="msg"><span class="lbl">Fehlermeldung</span><code>The sha parameter must be exactly 40 characters and contain only [0-9a-f].</code></div>
+  <div class="two">
+    <div class="blk cause"><span class="lbl">Ursache</span>Wir hatten nur die 7-stellige Kurzform der Commit-Kennung angegeben. Für Menschen reicht sie, das Programm verlangt die volle Länge.</div>
+    <div class="blk fix"><span class="lbl">Lösung / Umgang</span>Die volle 40-stellige Kennung mit <code>git rev-parse HEAD</code> geholt.</div>
+  </div>
+  
+  
+  <div class="lesson"><span class="lbl">Gelernt</span>Kurzformen sind für Menschen. Schnittstellen verlangen oft die vollständige Angabe.</div>
+</section>
+<section class="case" id="F18" style="--cc:#dc2626">
+  <div class="ch">
+    <div class="num">F18</div>
+    <div class="ttl">Sicherheit: Passwort im Chat, Schlüssel im Protokoll</div>
+  </div>
+  <div class="meta">
+    <span class="chip" style="background:#dc2626">Sicherheit</span> <span class="chip" style="background:#b91c1c">offen</span>
+    <span class="m">Entdeckt durch: <b>KI</b></span>
+    <span class="m">Wirkung: <span class="dots">●●●<span class="off"></span></span> <b>groß</b></span>
+  </div>
+  <div class="blk"><span class="lbl">Was ist passiert?</span>Bei der Fehlersuche wurde das Gmail-Passwort in den Chat geschrieben (hier bewusst nicht abgedruckt). Außerdem wurde ein von der KI erzeugter geheimer Schlüssel für den E-Mail-Versand einmal im Protokoll angezeigt.</div>
+  
+  <div class="two">
+    <div class="blk cause"><span class="lbl">Ursache</span>Zeitdruck und fehlende Routine: Passwörter gehören nicht in Chats oder Screenshots. Die KI hätte den Schlüssel ohne Anzeige übertragen sollen.</div>
+    <div class="blk fix"><span class="lbl">Lösung / Umgang</span><b>Noch offen:</b> Passwort des Gmail-Kontos ändern, Schlüssel vor dem Echtbetrieb neu erzeugen und austauschen. Künftig Zugangsdaten nur direkt in den Einstellungen der Dienste eintragen.</div>
+  </div>
+  
+  
+  <div class="lesson"><span class="lbl">Gelernt</span>Geheimnisse nie in Chats, Screenshots oder Repositories. Wurde eines doch preisgegeben: sofort ändern.</div>
+</section>
+<section class="case" id="F19" style="--cc:#0d9488">
+  <div class="ch">
+    <div class="num">F19</div>
+    <div class="ttl">Fehler im Vorgehen: zu schnell veröffentlicht, zu früh „fertig“</div>
+  </div>
+  <div class="meta">
+    <span class="chip" style="background:#0d9488">Vorgehen</span> <span class="chip" style="background:#15803d">gelöst</span>
+    <span class="m">Entdeckt durch: <b>KI</b></span>
+    <span class="m">Wirkung: <span class="dots">●●<span class="off">●</span></span> <b>mittel</b></span>
+  </div>
+  <div class="blk"><span class="lbl">Was ist passiert?</span>(a) Pull Requests wurden ohne ausdrückliche Freigabe zusammengeführt und damit direkt veröffentlicht. (b) Ein Test zum Vercel-Schutz benutzte ein Werkzeug, das den Schutz umgehen kann – der Beweis war deshalb ungültig. (c) Die Verzögerungs-Logik wurde als fertig gemeldet, bevor der zweite Klick getestet war.</div>
+  
+  <div class="two">
+    <div class="blk cause"><span class="lbl">Ursache</span>Zu wenig Abstimmung beim Veröffentlichen und zu wenige Wiederholungs-Tests.</div>
+    <div class="blk fix"><span class="lbl">Lösung / Umgang</span>(b) mit einem unabhängigen Test nachgeprüft (Aufruf von außen). Neue Regeln: Zusammenführen nach <code>main</code> nur nach ausdrücklicher Zusage; vor „fertig“ immer auch den Wiederholungsfall testen.</div>
+  </div>
+  
+  
+  <div class="lesson"><span class="lbl">Gelernt</span>Ehrlich benennen, was nicht gestimmt hat, gehört zu guter Arbeit.</div>
+</section>
+
+<h2 style="margin-top:14pt">Was wir gelernt haben</h2>
+<div class="ls"><div class="lsn">1</div><div><b>Fehlermeldungen sind Hinweise, keine Strafe</b><br>Bei 9 von 19 Fehlern hat das System selbst eine Meldung ausgegeben. Wer sie genau liest, findet meist sofort die Stelle.</div></div><div class="ls"><div class="lsn">2</div><div><b>Neue Versionen ändern Regeln</b><br>Wissenslücken waren mit 8 von 19 die häufigste Fehlerart: Tailwind 4, Next.js 16, Vercel, Gmail. Erst die aktuelle Dokumentation lesen.</div></div><div class="ls"><div class="lsn">3</div><div><b>Erst prüfen, dann schreiben</b><br>Richtiges Projekt? Leere Datenbank? Welcher Stand wird veröffentlicht? Das hätte mehrere Fehler früher gezeigt.</div></div><div class="ls"><div class="lsn">4</div><div><b>Bei unklarem Ausgang nicht blind wiederholen</b><br>Erst nachsehen, was angekommen ist. Sonst entstehen doppelte Daten.</div></div><div class="ls"><div class="lsn">5</div><div><b>Automatiken brauchen Zustand und Wiederholungs-Tests</b><br>Der endlose Verzögerungs-Vorschlag entstand, weil das Programm nicht wusste, was es schon getan hatte.</div></div><div class="ls"><div class="lsn">6</div><div><b>Testdaten sind Qualitätssicherung</b><br>Erst mit realistischen Daten fielen der Endlos-Vorschlag und die fehlende Öffnungszeiten-Prüfung auf.</div></div><div class="ls"><div class="lsn">7</div><div><b>Geheimnisse gehören nicht in Chats</b><br>Passwörter und Schlüssel nur direkt in den Einstellungen eintragen. Wurde eines preisgegeben: sofort ändern.</div></div><div class="ls"><div class="lsn">8</div><div><b>Berechtigungen gehören dem Menschen</b><br>Die KI darf sich keine Rechte geben, und eine Sperre ist oft ein gewollter Schutz.</div></div>
+
+<h2 style="margin-top:14pt">Wer hat was gemacht? (KI-Nutzung)</h2>
+<div class="roles">
+  <div class="role"><h4>Wir (Team)</h4><ul>
+    <li>Anforderungen festgelegt (Lastenheft, 26 Fragen im Fragebogen)</li>
+    <li>Entscheidungen getroffen, z. B. „keine Telefonnummer bei Gmail“</li>
+    <li>Einstellungen bei Supabase, Vercel und Google vorgenommen</li>
+    <li>Die laufende App ausprobiert und Fehler gemeldet</li></ul></div>
+  <div class="role"><h4>KI (Claude)</h4><ul>
+    <li>Programmcode, Datenbank und Tests geschrieben</li>
+    <li>Fehler in Protokollen und Fotos gesucht und behoben</li>
+    <li>Testdaten erzeugt, Dokumente und dieses Protokoll verfasst</li>
+    <li>Fehler der KI selbst: siehe F18 und F19</li></ul></div>
+</div>
+<p style="font-size:8.8pt">Die Verantwortung für Prüfung, Freigabe und Datenschutz bleibt beim Team. Das erkennt man an den Fehlern F7 und F19: Die KI darf sich keine Rechte geben, und Veröffentlichungen brauchen eine ausdrückliche Zusage.</p>
+
+<h2 style="margin-top:14pt">Offene Punkte</h2>
+<ul class="open" style="padding-left:14pt">
+  <li><span class="box"></span>Absender für E-Mails festlegen (Brevo oder eigene Domain plus Resend) und in Supabase <b>und</b> Vercel eintragen (F11)</li>
+  <li><span class="box"></span>Danach „Confirm email“ wieder einschalten und die Testmail prüfen (F12)</li>
+  <li><span class="box"></span>Geheimen Job-Schlüssel neu erzeugen und das Passwort des Gmail-Kontos ändern (F18)</li>
+  <li><span class="box"></span>Abend-Testtermine entfernen oder in die Sprechzeiten verlegen (F16)</li>
+  <li><span class="box"></span>Vor Echtbetrieb: Supabase Pro (Backups), Datenschutz-Verträge (AV-Vertrag), Datenschutz-Folgenabschätzung</li>
+</ul>
+<div class="note">Eine technisch ausführlichere Fassung mit 21 Einzelpunkten liegt im Projekt unter <code>docs/Probleme-und-Loesungen.md</code>. Hier sind verwandte Punkte zu 19 Fällen zusammengefasst (z. B. F9 = Build-Fehler, 404 und Redeploy).</div>
+
+<h2 style="margin-top:14pt">Begriffe kurz erklärt</h2>
+<div class="glos"><div class="gl"><b>Build</b><span>Das Programm wird aus dem Quellcode zusammengebaut und geprüft.</span></div><div class="gl"><b>Deployment / Redeploy</b><span>Das Veröffentlichen einer Version im Internet. Redeploy baut den alten Stand noch einmal.</span></div><div class="gl"><b>Commit</b><span>Ein gespeicherter Stand des Codes mit Beschreibung.</span></div><div class="gl"><b>Pull Request / Merge</b><span>Vorschlag, Änderungen in den Hauptzweig zu übernehmen. Merge führt sie dort zusammen.</span></div><div class="gl"><b>Repository (GitHub)</b><span>Der Ordner mit allen Dateien und der Änderungshistorie. Der Hauptzweig heißt <code>main</code> und wird veröffentlicht.</span></div><div class="gl"><b>Supabase</b><span>Dienst für Datenbank, Anmeldung, Dateispeicher und Echtzeit-Updates.</span></div><div class="gl"><b>Vercel</b><span>Dienst, der die Webseite im Internet bereitstellt.</span></div><div class="gl"><b>Migration</b><span>Eine Datei mit Datenbank-Änderungen, die in fester Reihenfolge ausgeführt wird.</span></div><div class="gl"><b>RLS (Row Level Security)</b><span>Datenbank-Regeln, wer welche Zeilen sehen und ändern darf.</span></div><div class="gl"><b>SMTP</b><span>Das Verfahren, mit dem Programme E-Mails über einen Mail-Server versenden.</span></div><div class="gl"><b>Trigger</b><span>Automatische Datenbank-Aktion, die bei einer Änderung ausgelöst wird.</span></div><div class="gl"><b>404</b><span>Standard-Fehlercode: Seite nicht gefunden.</span></div><div class="gl"><b>ESLint / TypeScript / Tailwind / Next.js</b><span>Prüfwerkzeuge für den Code, Design-Hilfsmittel und das Framework, mit dem die Webseiten gebaut sind.</span></div></div>
+</body></html>
