@@ -38,6 +38,7 @@ export async function savePractice(f: FormData) {
     emergency_slots_per_day: Number(s(f, "emergency_slots_per_day") ?? 0), cancel_deadline_hours: Number(s(f, "cancel_deadline_hours") ?? 24),
     reminder_hours: reminder.length ? reminder : [24], delay_notify_minutes: Number(s(f, "delay_notify_minutes") ?? 15),
     no_show_warn_threshold: Number(s(f, "no_show_warn_threshold") ?? 3),
+    no_show_ask_minutes: Math.min(240, Math.max(1, Number(s(f, "no_show_ask_minutes") ?? 20))),
   }).eq("id", practice.id);
   revalidatePath("/", "layout");
   redirect("/einstellungen?gespeichert=1");
