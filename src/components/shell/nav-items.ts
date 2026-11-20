@@ -1,4 +1,4 @@
-import { CalendarDays, LayoutDashboard, ListChecks, Settings, Stethoscope, TriangleAlert, Users } from "lucide-react";
+import { CalendarDays, Hourglass, LayoutDashboard, ListChecks, MessagesSquare, Settings, Stethoscope, TriangleAlert, Users } from "lucide-react";
 import type { ComponentType } from "react";
 
 export interface NavItem {
@@ -7,14 +7,14 @@ export interface NavItem {
   icon: ComponentType<{ className?: string }>;
   match: string[];
   exact?: boolean;
-  badge?: "tasks";
+  badge?: "tasks" | "chat";
 }
 export interface NavGroup {
   title: string | null;
   items: NavItem[];
 }
 
-/** Sechs Einträge statt zehn: der Tagesablauf (Check-in, Wartezimmer, Behandlung) liegt komplett auf „Heute“. */
+/** Der Tagesablauf (Check-in, Wartezimmer, Behandlung) liegt komplett auf „Heute“. */
 export const NAV: NavGroup[] = [
   {
     title: null,
@@ -27,8 +27,10 @@ export const NAV: NavGroup[] = [
   {
     title: "Praxisbetrieb",
     items: [
-      { href: "/stoerungen", label: "Störungen & Warteliste", icon: TriangleAlert, match: ["/stoerungen", "/warteliste"] },
+      { href: "/stoerungen", label: "Störungen", icon: TriangleAlert, match: ["/stoerungen"] },
+      { href: "/warteliste", label: "Warteliste", icon: Hourglass, match: ["/warteliste"] },
       { href: "/aufgaben", label: "Aufgaben", icon: ListChecks, match: ["/aufgaben"], badge: "tasks" },
+      { href: "/chat", label: "Chat", icon: MessagesSquare, match: ["/chat"], badge: "chat" },
     ],
   },
   {

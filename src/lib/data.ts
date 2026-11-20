@@ -34,7 +34,7 @@ export async function loadTypes(supabase: SupabaseClient, practiceId: string) {
 }
 
 export async function loadAbsences(supabase: SupabaseClient, practiceId: string, fromDay: string, toDay: string) {
-  const { data } = await supabase.from("staff_absences").select("*").eq("practice_id", practiceId).lte("starts_on", toDay).gte("ends_on", fromDay).order("starts_on");
+  const { data } = await supabase.from("staff_absences").select("*").eq("practice_id", practiceId).eq("status", "genehmigt").lte("starts_on", toDay).gte("ends_on", fromDay).order("starts_on");
   return (data ?? []) as Absence[];
 }
 

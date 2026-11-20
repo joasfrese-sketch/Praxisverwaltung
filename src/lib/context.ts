@@ -21,13 +21,8 @@ export const getUser = cache(async () => {
 /** Aktuelle Praxis + eigenes Mitarbeiterprofil (oder Weiterleitung zum Einrichten). */
 export const getContext = cache(async () => {
   const { supabase, userId, email } = await getUser();
-  let { data: memberships } = await supabase.from("staff").select("*, practice:practices(*)").eq("user_id", userId).eq("active", true);
-  if (!memberships?.length) {
-    const { data: claimed } = await supabase.rpc("claim_staff_invitations");
-    if (claimed) {
-      ({ data: memberships } = await supabase.from("staff").select("*, practice:practices(*)").eq("user_id", userId).eq("active", true));
-    }
-  }
+  // Mitarbeitende werden nur noch per Einladungslink mit einem Konto verknüpft (siehe /einladung/[token]).
+  const { data: memberships } = await supabase.from("staff").select("*, practice:practices(*)").eq("user_id", userId).eq("active", true);
   if (!memberships?.length) redirect("/einrichten");
   const wanted = (await cookies()).get(PRACTICE_COOKIE)?.value;
   const m = memberships.find((x) => x.practice_id === wanted) ?? memberships[0];

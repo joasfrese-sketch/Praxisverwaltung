@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlarmClock, CalendarX2, Check, ListTodo, type LucideIcon } from "lucide-react";
+import { AlarmClock, CalendarCheck, CalendarX2, Check, ListTodo, type LucideIcon } from "lucide-react";
 import { DelayCard } from "@/components/delay-card";
 import type { DelaySuggestion } from "@/lib/delays";
 import type { Staff } from "@/lib/types";
@@ -15,7 +15,7 @@ function Row({ icon: Icon, children, href, action }: { icon: LucideIcon; childre
 }
 
 /** Eine einzige Stelle für alles, was jetzt Aufmerksamkeit braucht. Leer = alles im Plan. */
-export function Attention({ delays, staffById, tz, absent, freed, waitlist, overdueTasks }: {
+export function Attention({ delays, staffById, tz, absent, freed, waitlist, overdueTasks, absenceRequests = 0 }: {
   delays: DelaySuggestion[];
   staffById: Map<string, Staff>;
   tz: string;
@@ -23,8 +23,9 @@ export function Attention({ delays, staffById, tz, absent, freed, waitlist, over
   freed: number;
   waitlist: number;
   overdueTasks: number;
+  absenceRequests?: number;
 }) {
-  const nothing = !delays.length && !absent.length && !freed && !overdueTasks;
+  const nothing = !delays.length && !absent.length && !freed && !overdueTasks && !absenceRequests;
   if (nothing) {
     return (
       <p className="flex items-center gap-2 text-sm text-slate-500">
@@ -43,6 +44,11 @@ export function Attention({ delays, staffById, tz, absent, freed, waitlist, over
       {freed > 0 && (
         <Row icon={CalendarX2} href="/stoerungen" action="Neu vergeben">
           {freed} {freed === 1 ? "Termin ist" : "Termine sind"} frei geworden{waitlist > 0 ? `, ${waitlist} ${waitlist === 1 ? "Patient wartet" : "Patienten warten"} auf der Warteliste` : ""}.
+        </Row>
+      )}
+      {absenceRequests > 0 && (
+        <Row icon={CalendarCheck} href="/stoerungen" action="Prüfen">
+          {absenceRequests} {absenceRequests === 1 ? "Abwesenheitsantrag wartet" : "Abwesenheitsanträge warten"} auf deine Genehmigung.
         </Row>
       )}
       {overdueTasks > 0 && (

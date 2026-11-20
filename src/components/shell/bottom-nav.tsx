@@ -2,11 +2,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Bell, CalendarDays, Ellipsis, LayoutDashboard, LogOut, Plus, Users, X } from "lucide-react";
+import { Bell, CalendarDays, CircleUser, Ellipsis, LayoutDashboard, LogOut, Plus, Users, X } from "lucide-react";
 import { NAV, isActive } from "./nav-items";
 
 /** Untere Leiste für Tablet und Handy: die vier häufigsten Ziele, „+ Termin“ in der Mitte, Rest unter „Mehr“. */
-export function BottomNav({ tasks, unread }: { tasks: number; unread: number }) {
+export function BottomNav({ tasks, unread, chat = 0 }: { tasks: number; unread: number; chat?: number }) {
   const path = usePathname();
   const [more, setMore] = useState(false);
   const flat = NAV.flatMap((g) => g.items);
@@ -15,7 +15,7 @@ export function BottomNav({ tasks, unread }: { tasks: number; unread: number }) 
     const active = isActive(path, find(href));
     return (
       <Link href={href} onClick={() => setMore(false)} aria-current={active ? "page" : undefined}
-        className={`flex flex-col items-center gap-0.5 py-1.5 text-[11px] ${active ? "font-medium text-brand-700" : "text-slate-500"}`}>
+        className={`flex flex-col items-center gap-0.5 py-1.5 text-[0.6875rem] ${active ? "font-medium text-brand-700" : "text-slate-500"}`}>
         <Icon className="h-5 w-5" />
         {label}
       </Link>
@@ -38,7 +38,7 @@ export function BottomNav({ tasks, unread }: { tasks: number; unread: number }) 
                   <Link href={i.href} onClick={() => setMore(false)} className="flex items-center gap-2 rounded-md px-3 py-2.5 text-sm hover:bg-slate-50">
                     <i.icon className="h-4 w-4 text-slate-500" />
                     <span className="flex-1">{i.label}</span>
-                    {i.badge === "tasks" && tasks > 0 && <span className="rounded-full bg-amber-400 px-1.5 text-xs font-semibold">{tasks}</span>}
+                    {(i.badge === "tasks" ? tasks : i.badge === "chat" ? chat : 0) > 0 && <span className="rounded-full bg-amber-400 px-1.5 text-xs font-semibold">{i.badge === "tasks" ? tasks : chat}</span>}
                   </Link>
                 </li>
               ))}
@@ -46,6 +46,11 @@ export function BottomNav({ tasks, unread }: { tasks: number; unread: number }) 
                 <Link href="/benachrichtigungen" onClick={() => setMore(false)} className="flex items-center gap-2 rounded-md px-3 py-2.5 text-sm hover:bg-slate-50">
                   <Bell className="h-4 w-4 text-slate-500" /><span className="flex-1">Benachrichtigungen</span>
                   {unread > 0 && <span className="rounded-full bg-amber-400 px-1.5 text-xs font-semibold">{unread}</span>}
+                </Link>
+              </li>
+              <li>
+                <Link href="/einstellungen/sicherheit" onClick={() => setMore(false)} className="flex items-center gap-2 rounded-md px-3 py-2.5 text-sm hover:bg-slate-50">
+                  <CircleUser className="h-4 w-4 text-slate-500" /><span className="flex-1">Mein Konto · Schrift</span>
                 </Link>
               </li>
               <li>
@@ -66,7 +71,8 @@ export function BottomNav({ tasks, unread }: { tasks: number; unread: number }) 
         </Link>
         {tab("/patienten", "Patienten", Users)}
         <button onClick={() => setMore(!more)} aria-expanded={more}
-          className={`flex flex-col items-center gap-0.5 py-1.5 text-[11px] ${more ? "font-medium text-brand-700" : "text-slate-500"}`}>
+          className={`relative flex flex-col items-center gap-0.5 py-1.5 text-[0.6875rem] ${more ? "font-medium text-brand-700" : "text-slate-500"}`}>
+          {tasks + chat + unread > 0 && <span className="absolute top-1 right-[calc(50%-16px)] h-2 w-2 rounded-full bg-amber-400" aria-hidden />}
           <Ellipsis className="h-5 w-5" />
           Mehr
         </button>

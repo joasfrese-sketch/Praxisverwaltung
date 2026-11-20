@@ -64,8 +64,8 @@ export async function saveRoom(f: FormData) {
   const { supabase, practice } = await requireAdmin();
   const id = s(f, "id");
   if (f.get("delete") === "1" && id) await supabase.from("rooms").update({ active: false }).eq("id", id);
-  else if (id) await supabase.from("rooms").update({ name: s(f, "name") }).eq("id", id);
-  else if (s(f, "name")) await supabase.from("rooms").insert({ practice_id: practice.id, name: s(f, "name"), sort: 99 });
+  else if (id) await supabase.from("rooms").update({ name: s(f, "name"), capabilities: f.getAll("capabilities").map(String) }).eq("id", id);
+  else if (s(f, "name")) await supabase.from("rooms").insert({ practice_id: practice.id, name: s(f, "name"), sort: 99, capabilities: f.getAll("capabilities").map(String) });
   revalidatePath("/einstellungen");
 }
 
@@ -82,7 +82,7 @@ export async function saveType(f: FormData) {
         const key = label.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
         return { key, label, type: (["text", "textarea", "number", "checkbox"].includes(type) ? type : "textarea") as ProtocolField["type"] };
       });
-    const row = { name: s(f, "name"), default_minutes: Number(s(f, "default_minutes") ?? 15), color: s(f, "color") ?? "#6b8bb0", protocol_template: template };
+    const row = { name: s(f, "name"), default_minutes: Number(s(f, "default_minutes") ?? 15), color: s(f, "color") ?? "#6b8bb0", protocol_template: template, required_capability: s(f, "required_capability") };
     if (!row.name) return;
     if (id) await supabase.from("appointment_types").update(row).eq("id", id);
     else await supabase.from("appointment_types").insert({ ...row, practice_id: practice.id });

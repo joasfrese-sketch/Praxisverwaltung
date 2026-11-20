@@ -12,7 +12,7 @@ function Block({ title, action, children }: { title: string; action?: React.Reac
   return (
     <section className="min-w-0 md:border-l md:border-slate-200 md:pl-5 md:first:border-l-0 md:first:pl-0 2xl:border-l-0 2xl:pl-0 2xl:py-3 2xl:first:pt-0 2xl:last:pb-0">
       <div className="mb-1.5 flex items-center justify-between gap-2">
-        <h2 className="text-[15px] font-semibold">{title}</h2>
+        <h2 className="text-[0.9375rem] font-semibold">{title}</h2>
         {action}
       </div>
       {children}

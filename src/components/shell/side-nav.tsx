@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NAV, isActive } from "./nav-items";
 
-export function SideNav({ tasks }: { tasks: number }) {
+export function SideNav({ tasks, chat = 0 }: { tasks: number; chat?: number }) {
   const path = usePathname();
   return (
     <nav className="space-y-5" aria-label="Hauptmenü">
@@ -13,7 +13,7 @@ export function SideNav({ tasks }: { tasks: number }) {
           <ul className="space-y-0.5">
             {g.items.map((it) => {
               const active = isActive(path, it);
-              const badge = it.badge === "tasks" ? tasks : 0;
+              const badge = it.badge === "tasks" ? tasks : it.badge === "chat" ? chat : 0;
               return (
                 <li key={it.href}>
                   <Link

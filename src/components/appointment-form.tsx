@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { saveAppointment, suggestSlots, type FormState, type Slot } from "@/app/actions/appointments";
 import type { AppointmentType, LocationKind, Room, Staff } from "@/lib/types";
-import { LOCATION, isProvider } from "@/lib/labels";
+import { LOCATION, ROOM_CAPABILITIES, isProvider } from "@/lib/labels";
 
 type P = { id: string; first_name: string; last_name: string; birth_date: string | null };
 export type AppointmentDefaults = {
@@ -38,6 +38,7 @@ export function AppointmentForm({ patients, staff, rooms, types, defaults, slot 
   const [time, setTime] = useState(defaults.time);
   const [slots, setSlots] = useState<Slot[] | null>(null);
   const [weeks, setWeeks] = useState(0);
+  const required = types.find((t) => t.id === typeId)?.required_capability ?? null;
 
   // Nächste freie Zeiten des gewählten Behandlers (Dauer, Sprechzeiten, Abwesenheit, bestehende Termine berücksichtigt)
   useEffect(() => {
@@ -112,6 +113,9 @@ export function AppointmentForm({ patients, staff, rooms, types, defaults, slot 
 
         <div className="sm:col-span-2">
           <span className="label">Nächste freie Zeiten ({duration} min)</span>
+          <p className="-mt-0.5 mb-1.5 text-xs text-slate-500">
+            Vorschläge im <b>{slot}-Minuten-Takt</b> der Praxis (Terminraster, einstellbar unter Einstellungen → Praxis). Die Uhrzeit unten kann trotzdem minutengenau eingetragen werden.
+          </p>
           {!doctorId ? (
             <p className="text-sm text-slate-500">Behandler wählen, dann erscheinen die nächsten freien Zeiten zum Anklicken.</p>
           ) : slots === null ? (
@@ -171,11 +175,19 @@ export function AppointmentForm({ patients, staff, rooms, types, defaults, slot 
           ))}
         </div>
         {loc === "praxis" && (
-          <label className="block"><span className="label">Raum</span>
-            <select name="room_id" className="input" defaultValue={defaults.room_id ?? ""}>
-              <option value="">– offen –</option>
-              {rooms.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+          <label className="block sm:col-span-2"><span className="label">Raum</span>
+            <select name="room_id" className="input" defaultValue={defaults.room_id ?? "auto"}>
+              <option value="auto">Automatisch – freien passenden Raum wählen</option>
+              <option value="">Noch offen (Raum beim Aufrufen)</option>
+              {rooms.map((r) => {
+                const ok = !required || r.capabilities?.includes(required);
+                return <option key={r.id} value={r.id} disabled={!ok}>{r.name}{r.capabilities?.length ? ` · ${r.capabilities.map((c) => ROOM_CAPABILITIES[c] ?? c).join(", ")}` : ""}{ok ? "" : " (ungeeignet)"}</option>;
+              })}
             </select>
+            <span className="mt-1 block text-xs text-slate-500">
+              {required ? <>Diese Leistung braucht einen Raum mit <b>{ROOM_CAPABILITIES[required] ?? required}</b>. </> : null}
+              „Automatisch“ verteilt Termine auf möglichst viele freie Räume; der Arzt kommt in den Raum des Patienten.
+            </span>
           </label>
         )}
         {loc === "hausbesuch" && (
@@ -217,7 +229,6 @@ export function AppointmentForm({ patients, staff, rooms, types, defaults, slot 
       )}
       <div className="flex gap-2">
         <button className="btn-primary" disabled={pending || !patientId}>{pending ? "Speichern …" : defaults.id ? "Änderungen speichern" : "Termin anlegen"}</button>
-        <span className="self-center text-xs text-slate-500">Raster: {slot} min</span>
       </div>
     </form>
   );
