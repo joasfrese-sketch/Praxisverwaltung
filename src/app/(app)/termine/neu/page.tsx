@@ -3,7 +3,7 @@ import { loadRooms, loadStaff, loadTypes } from "@/lib/data";
 import { PageHeader } from "@/components/ui";
 import { AppointmentForm } from "@/components/appointment-form";
 import { isProvider } from "@/lib/labels";
-import { today, toZoned } from "@/lib/time";
+import { today } from "@/lib/time";
 
 export const metadata = { title: "Neuer Termin" };
 
@@ -17,11 +17,10 @@ export default async function NewAppointment({ searchParams }: PageProps<"/termi
     loadTypes(supabase, practice.id),
     supabase.from("patients").select("id, first_name, last_name, birth_date").eq("practice_id", practice.id).order("last_name").limit(5000),
   ]);
-  const now = toZoned(new Date(), practice.timezone);
-  const roundedNow = Math.ceil(now.minutes / practice.slot_minutes) * practice.slot_minutes;
   let defaults = {
     date: str("datum") ?? today(practice.timezone),
-    time: str("zeit") ?? `${String(Math.floor(roundedNow / 60) % 24).padStart(2, "0")}:${String(roundedNow % 60).padStart(2, "0")}`,
+    // ohne Vorgabe bleibt die Uhrzeit leer: sie wird im Kalender angeklickt
+    time: str("zeit") ?? "",
     duration: practice.slot_minutes,
     doctor_id: str("behandler") ?? (isProvider(me.role) ? me.id : undefined),
     room_id: str("raum"),
@@ -35,7 +34,7 @@ export default async function NewAppointment({ searchParams }: PageProps<"/termi
 
   return (
     <div className="max-w-[1500px]">
-      <PageHeader title="Neuer Termin" />
+      <PageHeader title="Neuer Termin" subtitle="1. Freie Zeit im Kalender anklicken · 2. Patient wählen · 3. Speichern" />
       <AppointmentForm patients={patients ?? []} staff={staff} rooms={rooms} types={types} defaults={defaults} slot={practice.slot_minutes} />
     </div>
   );
