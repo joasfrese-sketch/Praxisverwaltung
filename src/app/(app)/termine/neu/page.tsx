@@ -27,15 +27,16 @@ export default async function NewAppointment({ searchParams }: PageProps<"/termi
     patient_id: str("patient"),
     type_id: str("typ"),
     waitlist_id: str("warteliste"),
+    anchor: str("datum") ? "date" : "next",
   } as Parameters<typeof AppointmentForm>[0]["defaults"];
   const t = types.find((x) => x.id === defaults.type_id);
   if (t) defaults = { ...defaults, duration: t.default_minutes };
   if (str("dauer")) defaults.duration = Number(str("dauer"));
 
   return (
-    <div className="max-w-[1500px]">
-      <PageHeader title="Neuer Termin" subtitle="1. Freie Zeit im Kalender anklicken · 2. Patient wählen · 3. Speichern" />
-      <AppointmentForm patients={patients ?? []} staff={staff} rooms={rooms} types={types} defaults={defaults} slot={practice.slot_minutes} />
+    <div className="max-w-6xl">
+      <PageHeader title="Neuer Termin" subtitle="Patient wählen · Wunschzeitraum antippen (z. B. „in 6 Monaten“) · freie Zeit anklicken · speichern" />
+      <AppointmentForm patients={patients ?? []} staff={staff} rooms={rooms} types={types} defaults={defaults} slot={practice.slot_minutes} today={today(practice.timezone)} />
     </div>
   );
 }

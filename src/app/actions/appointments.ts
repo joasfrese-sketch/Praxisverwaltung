@@ -2,7 +2,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getContext } from "@/lib/context";
-import { addDays, hhmmToMinutes, minutesToHhmm, today, toZoned, weekday, zonedToUtc } from "@/lib/time";
+import { addDays, hhmmToMinutes, toZoned, weekday, zonedToUtc } from "@/lib/time";
 import type { AppointmentStatus } from "@/lib/types";
 import { autoAssignRooms, roomForCall } from "@/lib/rooms";
 
@@ -198,50 +198,12 @@ export async function addNote(f: FormData) {
   revalidatePath("/", "layout");
 }
 
-export type Slot = { date: string; time: string };
 
 /**
  * Nächste freie Zeiten eines Behandlers für eine bestimmte Dauer (14 Tage ab „fromDate“).
  * Beachtet Sprechzeiten, bestehende Termine inkl. Pufferzeit, Abwesenheiten und bereits vergangene Uhrzeiten.
  * Pro Tag höchstens drei Vorschläge, damit die Auswahl über mehrere Tage reicht.
  */
-export async function suggestSlots(doctorId: string, minutes: number, fromDate?: string, excludeId?: string): Promise<Slot[]> {
-  if (!doctorId || !Number.isFinite(minutes) || minutes < 1 || minutes > 480) return [];
-  const { supabase, practice } = await getContext();
-  const tz = practice.timezone;
-  const startDay = fromDate && /^\d{4}-\d{2}-\d{2}$/.test(fromDate) && fromDate >= today(tz) ? fromDate : today(tz);
-  const endDay = addDays(startDay, 15);
-  const [{ data: hours }, { data: appts }, { data: abs }] = await Promise.all([
-    supabase.from("opening_hours").select("weekday, opens, closes").eq("practice_id", practice.id),
-    supabase.from("appointments").select("id, starts_at, ends_at").eq("doctor_id", doctorId).not("status", "in", "(abgesagt,nicht_erschienen)")
-      .gte("ends_at", zonedToUtc(`${startDay}T00:00`, tz).toISOString()).lt("starts_at", zonedToUtc(`${endDay}T00:00`, tz).toISOString()),
-    supabase.from("staff_absences").select("starts_on, ends_on").eq("staff_id", doctorId).eq("status", "genehmigt").lte("starts_on", endDay).gte("ends_on", startDay),
-  ]);
-  const step = Math.max(5, practice.slot_minutes);
-  const buffer = (practice.buffer_minutes ?? 0) * 60000;
-  const busy = (appts ?? []).filter((a) => a.id !== excludeId).map((a) => [new Date(a.starts_at).getTime() - buffer, new Date(a.ends_at).getTime() + buffer]);
-  const nowZ = toZoned(new Date(), tz);
-  const out: Slot[] = [];
-  for (let i = 0; i <= 14 && out.length < 9; i++) {
-    const d = addDays(startDay, i);
-    if ((abs ?? []).some((x) => x.starts_on <= d && x.ends_on >= d)) continue;
-    let perDay = 0;
-    const windows = (hours ?? []).filter((h) => h.weekday === weekday(d)).sort((a, b) => a.opens.localeCompare(b.opens));
-    for (const h of windows) {
-      const open = hhmmToMinutes(h.opens);
-      const close = hhmmToMinutes(h.closes);
-      for (let m = open; m + minutes <= close && perDay < 3 && out.length < 9; m += step) {
-        if (d === nowZ.date && m < nowZ.minutes + 5) continue;
-        const s = zonedToUtc(`${d}T${minutesToHhmm(m)}`, tz).getTime();
-        const e = s + minutes * 60000;
-        if (busy.some(([bs, be]) => s < be && e > bs)) continue;
-        out.push({ date: d, time: minutesToHhmm(m) });
-        perDay++;
-      }
-    }
-  }
-  return out;
-}
 
 export type PlanAppt = { id: string; start: number; end: number; label: string; reason: string; status: string; emergency: boolean };
 export type DayPlan = {
@@ -280,4 +242,42 @@ export async function loadDayPlan(day: string): Promise<DayPlan | null> {
       })),
     })),
   };
+}
+
+export type RangeDay = { day: string; open: [number, number][]; absent: string | null; appts: PlanAppt[] };
+export type RangePlan = { from: string; to: string; today: string; nowMin: number; buffer: number; days: RangeDay[] };
+
+/** Zeitraum-Plan eines Behandlers (max. 6 Wochen): Sprechzeiten, Abwesenheiten, belegte Zeiten je Tag. */
+export async function loadRangePlan(doctorId: string, from: string, to: string): Promise<RangePlan | null> {
+  const re = /^\d{4}-\d{2}-\d{2}$/;
+  if (!doctorId || !re.test(from) || !re.test(to) || to < from) return null;
+  const { supabase, practice } = await getContext();
+  const tz = practice.timezone;
+  const nowZ = toZoned(new Date(), tz);
+  const start = from < nowZ.date ? nowZ.date : from;
+  const end = to > addDays(start, 42) ? addDays(start, 42) : to;
+  if (end < start) return { from: start, to: end, today: nowZ.date, nowMin: nowZ.minutes, buffer: practice.buffer_minutes ?? 0, days: [] };
+  const [{ data: hours }, { data: appts }, { data: abs }] = await Promise.all([
+    supabase.from("opening_hours").select("weekday, opens, closes").eq("practice_id", practice.id).order("opens"),
+    supabase.from("appointments").select("id, starts_at, ends_at, reason, status, is_emergency, patient:patients(last_name)")
+      .eq("doctor_id", doctorId).not("status", "in", "(abgesagt,nicht_erschienen)")
+      .lt("starts_at", zonedToUtc(`${addDays(end, 1)}T00:00`, tz).toISOString()).gt("ends_at", zonedToUtc(`${start}T00:00`, tz).toISOString()).order("starts_at"),
+    supabase.from("staff_absences").select("kind, starts_on, ends_on").eq("staff_id", doctorId).eq("status", "genehmigt").lte("starts_on", end).gte("ends_on", start),
+  ]);
+  const kinds: Record<string, string> = { urlaub: "Urlaub", krank: "krank", fortbildung: "Fortbildung", sonstiges: "abwesend" };
+  const days: RangeDay[] = [];
+  for (let d = start; d <= end; d = addDays(d, 1)) {
+    const open = (hours ?? []).filter((h) => h.weekday === weekday(d)).map((h) => [hhmmToMinutes(h.opens), hhmmToMinutes(h.closes)] as [number, number]);
+    if (!open.length) continue; // geschlossene Tage (Wochenende) weglassen
+    const ab = (abs ?? []).find((a) => a.starts_on <= d && a.ends_on >= d);
+    const mins = (iso: string) => { const z = toZoned(iso, tz); return z.date < d ? 0 : z.date > d ? 24 * 60 : z.minutes; };
+    days.push({
+      day: d, open, absent: ab ? kinds[ab.kind] ?? "abwesend" : null,
+      appts: (appts ?? []).filter((a) => { const s = toZoned(a.starts_at, tz).date; const e = toZoned(a.ends_at, tz).date; return s <= d && e >= d; }).map((a) => ({
+        id: a.id, start: mins(a.starts_at), end: mins(a.ends_at), reason: a.reason, status: a.status, emergency: a.is_emergency,
+        label: (a.patient as unknown as { last_name: string } | null)?.last_name ?? "Termin",
+      })),
+    });
+  }
+  return { from: start, to: end, today: nowZ.date, nowMin: nowZ.minutes, buffer: practice.buffer_minutes ?? 0, days };
 }

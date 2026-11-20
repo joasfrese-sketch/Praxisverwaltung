@@ -1,29 +1,27 @@
 "use client";
 import Link from "next/link";
-import { useActionState, useEffect, useMemo, useState } from "react";
-import { saveAppointment, suggestSlots, type FormState, type Slot } from "@/app/actions/appointments";
+import { useActionState, useMemo, useState } from "react";
+import { saveAppointment, type FormState } from "@/app/actions/appointments";
 import type { AppointmentType, LocationKind, Room, Staff } from "@/lib/types";
 import { LOCATION, ROOM_CAPABILITIES, isProvider } from "@/lib/labels";
 import { DayPlan } from "@/components/day-plan";
+import { SlotFinder } from "@/components/slot-finder";
 
 type P = { id: string; first_name: string; last_name: string; birth_date: string | null };
 export type AppointmentDefaults = {
   id?: string; patient_id?: string; doctor_id?: string; assistant_id?: string | null; type_id?: string | null; reason?: string;
   date: string; time: string; duration: number; location_kind?: LocationKind; room_id?: string | null; address?: string | null;
   video_url?: string | null; is_emergency?: boolean; notes?: string | null; waitlist_id?: string;
+  /** "date": Datum ist vorgegeben (Kalender-Klick, Bearbeiten); sonst Suche ab heute */
+  anchor?: "next" | "date";
 };
 
-const plusDays = (d: string, n: number) => {
-  const x = new Date(`${d}T12:00:00Z`);
-  x.setUTCDate(x.getUTCDate() + n);
-  return x.toISOString().slice(0, 10);
-};
 const dayLabel = (d: string) => new Intl.DateTimeFormat("de-DE", { weekday: "short", day: "2-digit", month: "2-digit", timeZone: "UTC" }).format(new Date(`${d}T12:00:00Z`));
 
 const name = (s: { title?: string | null; first_name: string; last_name: string }) => [s.title, s.first_name, s.last_name].filter(Boolean).join(" ");
 
-export function AppointmentForm({ patients, staff, rooms, types, defaults, slot }: {
-  patients: P[]; staff: Staff[]; rooms: Room[]; types: AppointmentType[]; defaults: AppointmentDefaults; slot: number;
+export function AppointmentForm({ patients, staff, rooms, types, defaults, slot, today }: {
+  patients: P[]; staff: Staff[]; rooms: Room[]; types: AppointmentType[]; defaults: AppointmentDefaults; slot: number; today: string;
 }) {
   const providers = staff.filter((s) => isProvider(s.role));
   const assistants = staff.filter((s) => !isProvider(s.role));
@@ -37,24 +35,9 @@ export function AppointmentForm({ patients, staff, rooms, types, defaults, slot 
   const [doctorId, setDoctorId] = useState(defaults.doctor_id ?? (providers.length === 1 ? providers[0].id : ""));
   const [date, setDate] = useState(defaults.date);
   const [time, setTime] = useState(defaults.time);
-  const [slots, setSlots] = useState<Slot[] | null>(null);
-  const [weeks, setWeeks] = useState(0);
+  const [showDay, setShowDay] = useState(false);
   const required = types.find((t) => t.id === typeId)?.required_capability ?? null;
-
-  // Nächste freie Zeiten des gewählten Behandlers (Dauer, Sprechzeiten, Abwesenheit, bestehende Termine berücksichtigt)
-  useEffect(() => {
-    if (!doctorId || !(duration >= 1)) return;
-    let cancelled = false;
-    const t = setTimeout(async () => {
-      setSlots(null);
-      const r = await suggestSlots(doctorId, duration, plusDays(defaults.date, weeks * 14), defaults.id).catch(() => [] as Slot[]);
-      if (!cancelled) setSlots(r);
-    }, 250);
-    return () => {
-      cancelled = true;
-      clearTimeout(t);
-    };
-  }, [doctorId, duration, weeks, defaults.date, defaults.id]);
+  const doctor = providers.find((p) => p.id === doctorId);
 
   const shown = useMemo(() => {
     const f = filter.trim().toLowerCase();
@@ -64,31 +47,13 @@ export function AppointmentForm({ patients, staff, rooms, types, defaults, slot 
   const selected = patients.find((p) => p.id === patientId);
 
   return (
-    <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_30rem]">
-    {/* Schritt 1: Zeit im Kalender wählen – der Kalender ist der Hauptteil der Seite */}
-    <div className="min-w-0">
-      <DayPlan date={date} onDate={setDate} doctorId={doctorId} time={time} duration={duration} slot={slot} excludeId={defaults.id}
-        onPick={(d, t) => {
-          setDoctorId(d);
-          setTime(t);
-          if (window.innerWidth < 1280) document.getElementById("termin-details")?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }} />
-    </div>
-    <form id="termin-details" action={action} className="min-w-0 scroll-mt-20 space-y-4 xl:sticky xl:top-16 xl:max-h-[calc(100dvh-5rem)] xl:overflow-y-auto xl:pr-1">
-      <div className={`rounded-lg border px-4 py-3 text-sm ${doctorId && time ? "border-brand-300 bg-brand-50 text-brand-900" : "border-dashed border-slate-300 bg-white text-slate-600"}`}>
-        <div className="text-xs font-medium text-slate-500">2 · Patient und Details</div>
-        {doctorId && time ? (
-          <div className="mt-0.5 font-semibold">
-            {name(providers.find((p) => p.id === doctorId) ?? { first_name: "", last_name: "" })} · {/^\d{4}-\d{2}-\d{2}$/.test(date) ? dayLabel(date) : date} · {time} Uhr · {duration} min
-          </div>
-        ) : <div className="mt-0.5">Zuerst im Kalender eine freie Zeit anklicken.</div>}
-      </div>
+    <form action={action} className="space-y-4">
       {defaults.id && <input type="hidden" name="id" value={defaults.id} />}
       {defaults.waitlist_id && <input type="hidden" name="waitlist_id" value={defaults.waitlist_id} />}
       <input type="hidden" name="patient_id" value={patientId} />
 
       <section className="card space-y-3 p-4">
-        <h2 className="text-sm font-semibold">Patient *</h2>
+        <h2 className="text-sm font-semibold"><span className="text-slate-500">1 ·</span> Patient *</h2>
         {selected ? (
           <div className="flex items-center justify-between rounded-md bg-brand-50 px-3 py-2 text-sm">
             <span><b>{selected.last_name}, {selected.first_name}</b>{selected.birth_date && ` · geb. ${selected.birth_date.split("-").reverse().join(".")}`}</span>
@@ -111,64 +76,58 @@ export function AppointmentForm({ patients, staff, rooms, types, defaults, slot 
         )}
       </section>
 
-      <section className="card grid gap-3 p-4 sm:grid-cols-2">
-        <h2 className="text-sm font-semibold sm:col-span-2">Termin</h2>
-        <label className="block"><span className="label">Behandler *</span>
-          <select name="doctor_id" required className="input" value={doctorId} onChange={(e) => setDoctorId(e.target.value)}>
-            <option value="">– wählen –</option>
-            {providers.map((s) => <option key={s.id} value={s.id}>{name(s)}</option>)}
-          </select>
-        </label>
-        <label className="block"><span className="label">Termintyp / Leistung</span>
-          <select name="type_id" className="input" value={typeId} onChange={(e) => {
-            setTypeId(e.target.value);
-            const t = types.find((x) => x.id === e.target.value);
-            if (t) setDuration(t.default_minutes);
-          }}>
-            <option value="">– frei –</option>
-            {types.map((t) => <option key={t.id} value={t.id}>{t.name} ({t.default_minutes} min)</option>)}
-          </select>
-        </label>
-
-        <div className="sm:col-span-2">
-          <span className="label">Nächste freie Zeiten ({duration} min)</span>
-          <p className="-mt-0.5 mb-1.5 text-xs text-slate-500">
-            Vorschläge im <b>{slot}-Minuten-Takt</b> der Praxis (Terminraster, einstellbar unter Einstellungen → Praxis). Die Uhrzeit unten kann trotzdem minutengenau eingetragen werden.
-          </p>
-          {!doctorId ? (
-            <p className="text-sm text-slate-500">Behandler wählen, dann erscheinen die nächsten freien Zeiten zum Anklicken.</p>
-          ) : slots === null ? (
-            <p className="text-sm text-slate-500">Suche freie Zeiten …</p>
-          ) : slots.length === 0 ? (
-            <p className="text-sm text-slate-600">In diesem Zeitraum ist keine freie Zeit. Datum und Uhrzeit können unten von Hand eingegeben werden.</p>
-          ) : (
-            <div className="flex flex-wrap gap-1.5">
-              {slots.map((s) => {
-                const on = s.date === date && s.time === time;
-                return (
-                  <button type="button" key={`${s.date}${s.time}`} onClick={() => { setDate(s.date); setTime(s.time); }} aria-pressed={on}
-                    className={`rounded-md border px-2.5 py-1 text-sm tabular-nums ${on ? "border-brand-700 bg-brand-700 text-white" : "border-slate-300 bg-white hover:bg-brand-50"}`}>
-                    <span className={on ? "text-brand-100" : "text-slate-500"}>{dayLabel(s.date)}</span> <b className="font-semibold">{s.time}</b>
-                  </button>
-                );
-              })}
-              <button type="button" className="btn-ghost btn-sm" onClick={() => setWeeks(weeks + 1)}>Spätere Zeiten</button>
-              {weeks > 0 && <button type="button" className="btn-ghost btn-sm" onClick={() => setWeeks(0)}>Zurück zum Anfang</button>}
-            </div>
-          )}
-        </div>
-
-        <label className="block"><span className="label">Datum *</span>
-          <input type="date" name="date" required className="input" value={date} onChange={(e) => setDate(e.target.value)} />
-        </label>
-        <div className="grid grid-cols-2 gap-2">
-          <label className="block"><span className="label">Uhrzeit *</span>
-            <input type="time" name="time" required step={60} className="input" value={time} onChange={(e) => setTime(e.target.value)} />
+      <section className="card space-y-3 p-4">
+        <h2 className="text-sm font-semibold"><span className="text-slate-500">2 ·</span> Wann? Freien Termin finden</h2>
+        <div className="grid gap-3 sm:grid-cols-[1fr_1fr_7rem]">
+          <label className="block"><span className="label">Behandler *</span>
+            <select name="doctor_id" required className="input" value={doctorId} onChange={(e) => setDoctorId(e.target.value)}>
+              <option value="">– wählen –</option>
+              {providers.map((s) => <option key={s.id} value={s.id}>{name(s)}</option>)}
+            </select>
+          </label>
+          <label className="block"><span className="label">Termintyp / Leistung</span>
+            <select name="type_id" className="input" value={typeId} onChange={(e) => {
+              setTypeId(e.target.value);
+              const t = types.find((x) => x.id === e.target.value);
+              if (t) setDuration(t.default_minutes);
+            }}>
+              <option value="">– frei –</option>
+              {types.map((t) => <option key={t.id} value={t.id}>{t.name} ({t.default_minutes} min)</option>)}
+            </select>
           </label>
           <label className="block"><span className="label">Dauer (min)</span>
             <input type="number" name="duration" min={1} step={1} className="input" value={duration} onChange={(e) => setDuration(Number(e.target.value))} />
           </label>
         </div>
+        <SlotFinder today={today} doctorId={doctorId} doctorColor={doctor?.color ?? "#6f8cad"} duration={duration >= 1 ? duration : 15} slot={slot}
+          excludeId={defaults.id} date={date} time={time} initialWhen={defaults.anchor === "date" ? "date" : "next"}
+          onPick={(d, t) => { setDate(d); setTime(t); }} />
+        <div>
+          <button type="button" className="btn-ghost btn-sm" aria-expanded={showDay} onClick={() => setShowDay(!showDay)}>
+            {showDay ? "Tagesansicht ausblenden" : "Tagesansicht aller Behandler für den gewählten Tag zeigen"}
+          </button>
+          {showDay && (
+            <div className="mt-2">
+              <DayPlan date={date} onDate={setDate} doctorId={doctorId} time={time} duration={duration} slot={slot} excludeId={defaults.id}
+                onPick={(d, t) => { setDoctorId(d); setTime(t); }} />
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="card grid gap-3 p-4 sm:grid-cols-2">
+        <h2 className="text-sm font-semibold sm:col-span-2"><span className="text-slate-500">3 ·</span> Details</h2>
+        <div className={`rounded-md px-3 py-2 text-sm sm:col-span-2 ${doctorId && time ? "bg-brand-50 text-brand-900" : "bg-amber-50 text-amber-900"}`}>
+          {doctorId && time
+            ? <>Gewählt: <b>{doctor ? name(doctor) : ""} · {/^\d{4}-\d{2}-\d{2}$/.test(date) ? dayLabel(date) : date} · {time} Uhr · {duration} min</b></>
+            : "Noch keine Zeit gewählt – oben ein grünes Feld anklicken (oder unten von Hand eintragen)."}
+        </div>
+        <label className="block"><span className="label">Datum *</span>
+          <input type="date" name="date" required className="input" value={date} onChange={(e) => setDate(e.target.value)} />
+        </label>
+        <label className="block"><span className="label">Uhrzeit *</span>
+          <input type="time" name="time" required step={60} className="input" value={time} onChange={(e) => setTime(e.target.value)} />
+        </label>
         <label className="block"><span className="label">Grund {typeId ? "(optional)" : "*"}</span>
           <input name="reason" className="input" defaultValue={defaults.reason} placeholder={typeId ? types.find((t) => t.id === typeId)?.name : "z. B. Rückenschmerzen"} />
         </label>
@@ -250,6 +209,5 @@ export function AppointmentForm({ patients, staff, rooms, types, defaults, slot 
         <button className="btn-primary" disabled={pending || !patientId}>{pending ? "Speichern …" : defaults.id ? "Änderungen speichern" : "Termin anlegen"}</button>
       </div>
     </form>
-    </div>
   );
 }
