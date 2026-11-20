@@ -22,7 +22,7 @@ export default async function EditAppointment({ params }: PageProps<"/termine/[i
   ]);
   const z = toZoned(a.starts_at, practice.timezone);
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-[1500px]">
       <PageHeader title="Termin bearbeiten" subtitle="Änderungen werden protokolliert; der Patient wird bei Zeit- oder Behandlerwechsel informiert." />
       <AppointmentForm
         patients={patients ?? []} staff={staff} rooms={rooms} types={types} slot={practice.slot_minutes}

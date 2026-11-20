@@ -242,3 +242,42 @@ export async function suggestSlots(doctorId: string, minutes: number, fromDate?:
   }
   return out;
 }
+
+export type PlanAppt = { id: string; start: number; end: number; label: string; reason: string; status: string; emergency: boolean };
+export type DayPlan = {
+  day: string; open: [number, number][];
+  providers: { id: string; name: string; color: string; absent: string | null; appts: PlanAppt[] }[];
+};
+
+/** Tagesplan aller Behandler für die Terminvergabe (belegte Zeiten, Sprechzeiten, Abwesenheiten). */
+export async function loadDayPlan(day: string): Promise<DayPlan | null> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return null;
+  const { supabase, practice } = await getContext();
+  const tz = practice.timezone;
+  const from = zonedToUtc(`${day}T00:00`, tz).toISOString();
+  const to = zonedToUtc(`${addDays(day, 1)}T00:00`, tz).toISOString();
+  const [{ data: staff }, { data: hours }, { data: appts }, { data: abs }] = await Promise.all([
+    supabase.from("staff").select("id, title, first_name, last_name, role, color").eq("practice_id", practice.id).eq("active", true).in("role", ["arzt", "therapeut"]).order("last_name"),
+    supabase.from("opening_hours").select("opens, closes").eq("practice_id", practice.id).eq("weekday", weekday(day)).order("opens"),
+    supabase.from("appointments").select("id, doctor_id, starts_at, ends_at, reason, status, is_emergency, patient:patients(last_name)")
+      .eq("practice_id", practice.id).not("status", "in", "(abgesagt,nicht_erschienen)").lt("starts_at", to).gt("ends_at", from).order("starts_at"),
+    supabase.from("staff_absences").select("staff_id, kind").eq("practice_id", practice.id).eq("status", "genehmigt").lte("starts_on", day).gte("ends_on", day),
+  ]);
+  const mins = (iso: string) => {
+    const z = toZoned(iso, tz);
+    return z.date < day ? 0 : z.date > day ? 24 * 60 : z.minutes;
+  };
+  const kinds: Record<string, string> = { urlaub: "Urlaub", krank: "krank", fortbildung: "Fortbildung", sonstiges: "abwesend" };
+  return {
+    day,
+    open: (hours ?? []).map((h) => [hhmmToMinutes(h.opens), hhmmToMinutes(h.closes)] as [number, number]),
+    providers: (staff ?? []).map((s) => ({
+      id: s.id, color: s.color, name: [s.title, s.last_name].filter(Boolean).join(" ") || s.first_name,
+      absent: (() => { const a = (abs ?? []).find((x) => x.staff_id === s.id); return a ? kinds[a.kind] ?? "abwesend" : null; })(),
+      appts: (appts ?? []).filter((a) => a.doctor_id === s.id).map((a) => ({
+        id: a.id, start: mins(a.starts_at), end: mins(a.ends_at), reason: a.reason, status: a.status, emergency: a.is_emergency,
+        label: (a.patient as unknown as { last_name: string } | null)?.last_name ?? "Termin",
+      })),
+    })),
+  };
+}
