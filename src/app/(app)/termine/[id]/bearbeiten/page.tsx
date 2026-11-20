@@ -3,7 +3,7 @@ import { getContext } from "@/lib/context";
 import { loadRooms, loadStaff, loadTypes } from "@/lib/data";
 import { PageHeader } from "@/components/ui";
 import { AppointmentForm } from "@/components/appointment-form";
-import { minutesBetween, toZoned } from "@/lib/time";
+import { minutesBetween, today, toZoned } from "@/lib/time";
 import type { Appointment } from "@/lib/types";
 
 export const metadata = { title: "Termin bearbeiten" };
@@ -22,11 +22,11 @@ export default async function EditAppointment({ params }: PageProps<"/termine/[i
   ]);
   const z = toZoned(a.starts_at, practice.timezone);
   return (
-    <div className="max-w-[1500px]">
+    <div className="max-w-6xl">
       <PageHeader title="Termin bearbeiten" subtitle="Änderungen werden protokolliert; der Patient wird bei Zeit- oder Behandlerwechsel informiert." />
       <AppointmentForm
-        patients={patients ?? []} staff={staff} rooms={rooms} types={types} slot={practice.slot_minutes}
-        defaults={{ ...a, date: z.date, time: z.time, duration: minutesBetween(a.starts_at, a.ends_at) }}
+        patients={patients ?? []} staff={staff} rooms={rooms} types={types} slot={practice.slot_minutes} today={today(practice.timezone)}
+        defaults={{ ...a, date: z.date, time: z.time, duration: minutesBetween(a.starts_at, a.ends_at), anchor: "date" }}
       />
     </div>
   );
