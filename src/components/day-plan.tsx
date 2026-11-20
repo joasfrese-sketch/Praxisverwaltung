@@ -7,6 +7,8 @@ const PX = 1.1; // Pixel pro Minute
 const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 const toMin = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + (m || 0); };
 const shift = (d: string, n: number) => { const x = new Date(`${d}T12:00:00Z`); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+/** Nur vollständige, plausible Daten – beim Eintippen ist das Feld kurz leer oder z. B. „0002-03-30“. */
+const isValidDay = (d: string) => /^\d{4}-\d{2}-\d{2}$/.test(d) && d >= "2000-01-01" && d <= "2199-12-31" && !Number.isNaN(Date.parse(`${d}T12:00:00Z`));
 const longDay = (d: string) => new Intl.DateTimeFormat("de-DE", { weekday: "long", day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" }).format(new Date(`${d}T12:00:00Z`));
 
 /**
@@ -17,6 +19,10 @@ export function DayPlan({ date, onDate, doctorId, time, duration, slot, excludeI
   date: string; onDate: (d: string) => void; doctorId: string; time: string; duration: number; slot: number; excludeId?: string;
   onPick: (doctorId: string, time: string) => void;
 }) {
+  // Letztes gültiges Datum anzeigen, solange im Datumsfeld noch getippt wird
+  const [good, setGood] = useState(() => (isValidDay(date) ? date : new Date().toISOString().slice(0, 10)));
+  if (isValidDay(date) && date !== good) setGood(date);
+  const day = good;
   const [plan, setPlan] = useState<Plan | null>(null);
   const [loading, setLoading] = useState(true);
   const req = useRef(0);
@@ -24,11 +30,11 @@ export function DayPlan({ date, onDate, doctorId, time, duration, slot, excludeI
     const id = ++req.current;
     const t = setTimeout(async () => {
       setLoading(true);
-      const p = await loadDayPlan(date).catch(() => null);
+      const p = await loadDayPlan(day).catch(() => null);
       if (id === req.current) { setPlan(p); setLoading(false); }
     }, 150);
     return () => clearTimeout(t);
-  }, [date]);
+  }, [day]);
 
   const step = Math.max(5, slot);
   const open = plan?.open ?? [];
@@ -45,9 +51,9 @@ export function DayPlan({ date, onDate, doctorId, time, duration, slot, excludeI
       <header className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-3 py-2">
         <h2 className="text-sm font-semibold">Kalender</h2>
         <div className="ml-auto flex items-center gap-1">
-          <button type="button" className="btn-ghost btn-sm px-1.5" aria-label="Vorheriger Tag" onClick={() => onDate(shift(date, -1))}><ChevronLeft className="h-4 w-4" /></button>
-          <span className="min-w-44 text-center text-sm font-medium">{longDay(date)}</span>
-          <button type="button" className="btn-ghost btn-sm px-1.5" aria-label="Nächster Tag" onClick={() => onDate(shift(date, 1))}><ChevronRight className="h-4 w-4" /></button>
+          <button type="button" className="btn-ghost btn-sm px-1.5" aria-label="Vorheriger Tag" onClick={() => onDate(shift(day, -1))}><ChevronLeft className="h-4 w-4" /></button>
+          <span className="min-w-44 text-center text-sm font-medium">{longDay(day)}</span>
+          <button type="button" className="btn-ghost btn-sm px-1.5" aria-label="Nächster Tag" onClick={() => onDate(shift(day, 1))}><ChevronRight className="h-4 w-4" /></button>
         </div>
       </header>
       <p className="px-3 pt-2 text-xs text-slate-500">
