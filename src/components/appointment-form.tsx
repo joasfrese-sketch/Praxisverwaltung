@@ -64,8 +64,25 @@ export function AppointmentForm({ patients, staff, rooms, types, defaults, slot 
   const selected = patients.find((p) => p.id === patientId);
 
   return (
-    <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,46rem)_minmax(0,1fr)]">
-    <form action={action} className="min-w-0 space-y-4">
+    <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_30rem]">
+    {/* Schritt 1: Zeit im Kalender wählen – der Kalender ist der Hauptteil der Seite */}
+    <div className="min-w-0">
+      <DayPlan date={date} onDate={setDate} doctorId={doctorId} time={time} duration={duration} slot={slot} excludeId={defaults.id}
+        onPick={(d, t) => {
+          setDoctorId(d);
+          setTime(t);
+          if (window.innerWidth < 1280) document.getElementById("termin-details")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }} />
+    </div>
+    <form id="termin-details" action={action} className="min-w-0 scroll-mt-20 space-y-4 xl:sticky xl:top-16 xl:max-h-[calc(100dvh-5rem)] xl:overflow-y-auto xl:pr-1">
+      <div className={`rounded-lg border px-4 py-3 text-sm ${doctorId && time ? "border-brand-300 bg-brand-50 text-brand-900" : "border-dashed border-slate-300 bg-white text-slate-600"}`}>
+        <div className="text-xs font-medium text-slate-500">2 · Patient und Details</div>
+        {doctorId && time ? (
+          <div className="mt-0.5 font-semibold">
+            {name(providers.find((p) => p.id === doctorId) ?? { first_name: "", last_name: "" })} · {/^\d{4}-\d{2}-\d{2}$/.test(date) ? dayLabel(date) : date} · {time} Uhr · {duration} min
+          </div>
+        ) : <div className="mt-0.5">Zuerst im Kalender eine freie Zeit anklicken.</div>}
+      </div>
       {defaults.id && <input type="hidden" name="id" value={defaults.id} />}
       {defaults.waitlist_id && <input type="hidden" name="waitlist_id" value={defaults.waitlist_id} />}
       <input type="hidden" name="patient_id" value={patientId} />
@@ -79,7 +96,7 @@ export function AppointmentForm({ patients, staff, rooms, types, defaults, slot 
           </div>
         ) : (
           <div>
-            <input className="input" placeholder="Name oder Geburtsdatum tippen, Enter wählt den ersten Treffer" value={filter} onChange={(e) => setFilter(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); if (shown[0]) setPatientId(shown[0].id); } }} autoFocus />
+            <input className="input" placeholder="Name oder Geburtsdatum tippen, Enter wählt den ersten Treffer" value={filter} onChange={(e) => setFilter(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); if (shown[0]) setPatientId(shown[0].id); } }} />
             <ul className="mt-1 max-h-48 overflow-y-auto rounded-md border border-slate-200 text-sm">
               {shown.map((p) => (
                 <li key={p.id}>
@@ -233,10 +250,6 @@ export function AppointmentForm({ patients, staff, rooms, types, defaults, slot 
         <button className="btn-primary" disabled={pending || !patientId}>{pending ? "Speichern …" : defaults.id ? "Änderungen speichern" : "Termin anlegen"}</button>
       </div>
     </form>
-    <div className="min-w-0 xl:sticky xl:top-16">
-      <DayPlan date={date} onDate={setDate} doctorId={doctorId} time={time} duration={duration} slot={slot} excludeId={defaults.id}
-        onPick={(d, t) => { setDoctorId(d); setTime(t); }} />
-    </div>
     </div>
   );
 }

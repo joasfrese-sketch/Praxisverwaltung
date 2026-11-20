@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { loadDayPlan, type DayPlan as Plan } from "@/app/actions/appointments";
 
-const PX = 1.1; // Pixel pro Minute
+const PX = 1.5; // Pixel pro Minute
 const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 const toMin = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + (m || 0); };
 const shift = (d: string, n: number) => { const x = new Date(`${d}T12:00:00Z`); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
@@ -49,7 +49,7 @@ export function DayPlan({ date, onDate, doctorId, time, duration, slot, excludeI
   return (
     <section className="card flex min-w-0 flex-col" aria-label="Tageskalender">
       <header className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-3 py-2">
-        <h2 className="text-sm font-semibold">Kalender</h2>
+        <h2 className="text-sm font-semibold"><span className="text-slate-500">1 ·</span> Freie Zeit wählen</h2>
         <div className="ml-auto flex items-center gap-1">
           <button type="button" className="btn-ghost btn-sm px-1.5" aria-label="Vorheriger Tag" onClick={() => onDate(shift(day, -1))}><ChevronLeft className="h-4 w-4" /></button>
           <span className="min-w-44 text-center text-sm font-medium">{longDay(day)}</span>
@@ -73,10 +73,10 @@ export function DayPlan({ date, onDate, doctorId, time, duration, slot, excludeI
             </div>
             {plan.providers.map((p) => {
               const mine = p.id === doctorId;
-              const preview = mine && date === plan.day ? { s: sel, e: sel + duration } : null;
+              const preview = mine && time && date === plan.day ? { s: sel, e: sel + duration } : null;
               const clash = preview && p.appts.some((a) => a.id !== excludeId && a.start < preview.e && a.end > preview.s);
               return (
-                <div key={p.id} className="min-w-28 flex-1 border-l border-slate-200">
+                <div key={p.id} className="min-w-32 flex-1 border-l border-slate-200">
                   <div className={`flex h-8 items-center gap-1.5 truncate px-1.5 text-xs font-medium ${mine ? "rounded-t bg-brand-100 text-brand-900" : ""}`}>
                     <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: p.color }} />{p.name}
                   </div>
@@ -96,7 +96,7 @@ export function DayPlan({ date, onDate, doctorId, time, duration, slot, excludeI
                     {p.absent && <div className="pointer-events-none absolute inset-x-0 top-2 text-center text-xs font-medium text-rose-700">{p.absent}</div>}
                     {p.appts.filter((a) => a.id !== excludeId).map((a) => (
                       <div key={a.id} onClick={(e) => e.stopPropagation()}
-                        className={`absolute inset-x-0.5 z-10 cursor-default overflow-hidden rounded border border-l-[3px] px-1 text-[0.6875rem] leading-tight text-slate-900 ${a.status === "abgeschlossen" ? "opacity-55" : ""}`}
+                        className={`absolute inset-x-0.5 z-10 cursor-default overflow-hidden rounded border border-l-[3px] px-1 text-xs leading-tight text-slate-900 ${a.status === "abgeschlossen" ? "opacity-55" : ""}`}
                         style={{ top: Math.max(0, a.start - startMin) * PX, height: Math.max((a.end - a.start) * PX - 1, 12), borderColor: `${p.color}88`, borderLeftColor: p.color, background: `${p.color}33` }}
                         title={`${hhmm(a.start)}–${hhmm(a.end)} ${a.label}: ${a.reason}`}>
                         <span className="font-semibold tabular-nums">{hhmm(a.start)}</span> {a.label}{a.emergency ? " ⚠" : ""}
