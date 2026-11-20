@@ -6,6 +6,7 @@ export type AppointmentStatus =
   | "geplant" | "bestaetigt" | "eingecheckt" | "in_behandlung" | "abgeschlossen" | "abgesagt" | "nicht_erschienen";
 export type LocationKind = "praxis" | "hausbesuch" | "video";
 export type AbsenceKind = "urlaub" | "krank" | "fortbildung" | "sonstiges";
+export type AbsenceStatus = "beantragt" | "genehmigt" | "abgelehnt";
 
 export interface Practice {
   id: string; name: string; practice_type: PracticeType;
@@ -20,11 +21,11 @@ export interface Staff {
   email: string | null; phone: string | null; color: string; can_read_medical: boolean;
   substitute_id: string | null; active: boolean;
 }
-export interface Room { id: string; practice_id: string; name: string; sort: number; active: boolean }
+export interface Room { id: string; practice_id: string; name: string; sort: number; active: boolean; capabilities: string[] }
 export interface ProtocolField { key: string; label: string; type: "text" | "textarea" | "number" | "checkbox" }
 export interface AppointmentType {
   id: string; practice_id: string; name: string; default_minutes: number; color: string;
-  protocol_template: ProtocolField[]; active: boolean;
+  protocol_template: ProtocolField[]; active: boolean; required_capability: string | null;
 }
 export interface Patient {
   id: string; practice_id: string; first_name: string; last_name: string; birth_date: string | null;
@@ -47,4 +48,5 @@ export type AppointmentWithPatient = Appointment & {
 };
 export interface Absence {
   id: string; practice_id: string; staff_id: string; kind: AbsenceKind; starts_on: string; ends_on: string; note: string | null;
+  status: AbsenceStatus; created_by: string | null; decided_by: string | null; decided_at: string | null; decision_note: string | null;
 }

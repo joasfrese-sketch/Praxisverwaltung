@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
 import { IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
 
@@ -13,9 +14,14 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { themeColor: "#34495f" };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+const SCALES = [90, 100, 112, 125, 140];
+
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // Persönliche Schriftgröße (Mein Konto) – skaliert alle rem-Größen der Oberfläche
+  const raw = Number((await cookies()).get("schrift")?.value);
+  const scale = SCALES.includes(raw) ? raw : 100;
   return (
-    <html lang="de" className={`${plex.variable} h-full antialiased`}>
+    <html lang="de" className={`${plex.variable} h-full antialiased`} style={scale !== 100 ? { fontSize: `${scale}%` } : undefined}>
       <body className="min-h-full font-sans">{children}</body>
     </html>
   );

@@ -8,15 +8,29 @@ const s = (f: FormData, k: string) => {
   return v == null || String(v).trim() === "" ? null : String(v).trim();
 };
 
+/** Admins tragen Abwesenheiten direkt ein, alle anderen stellen einen Antrag. */
 export async function addAbsence(f: FormData) {
   const { supabase, practice, me } = await getContext();
   const starts_on = s(f, "starts_on");
   const ends_on = s(f, "ends_on") ?? starts_on;
   if (!starts_on || !s(f, "staff_id")) return;
+  if (ends_on! < starts_on) redirect(`/stoerungen?fehler=${encodeURIComponent("Ende liegt vor dem Beginn.")}`);
   const { error } = await supabase.from("staff_absences").insert({
     practice_id: practice.id, staff_id: s(f, "staff_id"), kind: s(f, "kind") ?? "sonstiges", starts_on, ends_on, note: s(f, "note"), created_by: me.id,
+    status: me.is_admin ? "genehmigt" : "beantragt",
+    ...(me.is_admin ? { decided_by: me.id, decided_at: new Date().toISOString() } : {}),
   });
   if (error) redirect(`/stoerungen?fehler=${encodeURIComponent(error.message)}`);
+  revalidatePath("/", "layout");
+}
+
+export async function decideAbsence(f: FormData) {
+  const { supabase, me } = await getContext();
+  if (!me.is_admin) return;
+  const decision = f.get("decision") === "genehmigt" ? "genehmigt" : "abgelehnt";
+  await supabase.from("staff_absences")
+    .update({ status: decision, decided_by: me.id, decided_at: new Date().toISOString(), decision_note: s(f, "decision_note") })
+    .eq("id", String(f.get("id")));
   revalidatePath("/", "layout");
 }
 
@@ -33,6 +47,18 @@ export async function addWaitlist(f: FormData) {
     practice_id: practice.id, patient_id: s(f, "patient_id"), doctor_id: s(f, "doctor_id"), type_id: s(f, "type_id"), note: s(f, "note"),
     earliest_date: s(f, "earliest_date"), latest_date: s(f, "latest_date"), priority: Number(s(f, "priority") ?? 0),
   });
+  revalidatePath("/warteliste");
+  redirect("/warteliste");
+}
+
+export async function updateWaitlist(f: FormData) {
+  const { supabase } = await getContext();
+  const id = s(f, "id");
+  if (!id) return;
+  await supabase.from("waitlist_entries").update({
+    doctor_id: s(f, "doctor_id"), type_id: s(f, "type_id"), note: s(f, "note"),
+    earliest_date: s(f, "earliest_date"), latest_date: s(f, "latest_date"), priority: Number(s(f, "priority") ?? 0),
+  }).eq("id", id);
   revalidatePath("/warteliste");
   redirect("/warteliste");
 }

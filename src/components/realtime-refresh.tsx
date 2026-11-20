@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-/** Lädt die Seite neu, sobald sich Termine/Benachrichtigungen/Abwesenheiten der Praxis ändern. */
+/** Lädt die Seite neu, sobald sich Termine/Benachrichtigungen/Abwesenheiten/Chat der Praxis ändern. */
 export function RealtimeRefresh({ practiceId }: { practiceId: string }) {
   const router = useRouter();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -19,6 +19,7 @@ export function RealtimeRefresh({ practiceId }: { practiceId: string }) {
       .on("postgres_changes", { event: "*", schema: "public", table: "appointments", filter }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "staff_absences", filter }, refresh)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_messages", filter }, refresh)
       .subscribe();
     const interval = setInterval(() => router.refresh(), 60_000); // Verzögerungen laufend neu bewerten
     return () => {

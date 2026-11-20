@@ -5,8 +5,8 @@ import { saveCategory, saveOpeningHours, savePractice, saveRoom, saveType, sendT
 import { smtpConfig } from "@/lib/mail";
 import { Card, Notice, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
-import { PRACTICE_TYPES } from "@/lib/labels";
-import type { AppointmentType } from "@/lib/types";
+import { PRACTICE_TYPES, ROOM_CAPABILITIES } from "@/lib/labels";
+import type { AppointmentType, Room } from "@/lib/types";
 
 export const metadata = { title: "Einstellungen" };
 const DAYS = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"];
@@ -44,7 +44,7 @@ export default async function Settings({ searchParams }: PageProps<"/einstellung
             <label className="block"><span className="label">PLZ</span><input name="zip" className="input" defaultValue={p.zip ?? ""} /></label>
             <label className="block"><span className="label">Ort</span><input name="city" className="input" defaultValue={p.city ?? ""} /></label>
             <div />
-            <label className="block"><span className="label">Terminraster (min)</span><input name="slot_minutes" type="number" min={1} className="input" defaultValue={p.slot_minutes} /></label>
+            <label className="block"><span className="label">Terminraster (min)</span><input name="slot_minutes" type="number" min={1} className="input" defaultValue={p.slot_minutes} /><span className="mt-1 block text-xs text-slate-500">Takt für Zeitvorschläge und Kalender (z. B. 15 = 8:00, 8:15, 8:30 …).</span></label>
             <label className="block"><span className="label">Puffer zwischen Terminen (min)</span><input name="buffer_minutes" type="number" min={0} className="input" defaultValue={p.buffer_minutes} /></label>
             <label className="block"><span className="label">Akut-Slots pro Tag freihalten</span><input name="emergency_slots_per_day" type="number" min={0} className="input" defaultValue={p.emergency_slots_per_day} /></label>
             <label className="block"><span className="label">Absagefrist Patient (Std.)</span><input name="cancel_deadline_hours" type="number" min={0} className="input" defaultValue={p.cancel_deadline_hours} /></label>
@@ -87,19 +87,29 @@ export default async function Settings({ searchParams }: PageProps<"/einstellung
       </Card>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Card title="Räume">
-          <ul className="mb-3 space-y-1.5">
-            {(rooms ?? []).map((r) => (
+        <Card title="Räume & Ausstattung">
+          <p className="mb-3 text-xs text-slate-500">Die Ausstattung bestimmt, welche Leistungen in einem Raum möglich sind. Bei „Raum: Automatisch“ verteilt die App Termine auf möglichst viele freie, passende Räume.</p>
+          <ul className="mb-3 space-y-2">
+            {((rooms ?? []) as Room[]).map((r) => (
               <li key={r.id}>
-                <form action={saveRoom} className="flex gap-1">
+                <form action={saveRoom} className="rounded-md border border-slate-200 p-2">
                   <input type="hidden" name="id" value={r.id} />
-                  <input name="name" className="input py-1" defaultValue={r.name} disabled={ro} />
-                  {!ro && <><SubmitButton size="sm" variant="secondary">✓</SubmitButton><SubmitButton size="sm" variant="ghost" name="delete" value="1" confirm="Raum entfernen?">✕</SubmitButton></>}
+                  <fieldset disabled={ro} className="contents">
+                    <div className="flex gap-1">
+                      <input name="name" className="input py-1" defaultValue={r.name} aria-label="Raumname" />
+                      {!ro && <><SubmitButton size="sm" variant="secondary">Speichern</SubmitButton><SubmitButton size="sm" variant="ghost" name="delete" value="1" confirm="Raum entfernen?">✕</SubmitButton></>}
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs">
+                      {Object.entries(ROOM_CAPABILITIES).map(([k, l]) => (
+                        <label key={k} className="flex items-center gap-1"><input type="checkbox" name="capabilities" value={k} defaultChecked={r.capabilities?.includes(k)} className="accent-brand-600" />{l}</label>
+                      ))}
+                    </div>
+                  </fieldset>
                 </form>
               </li>
             ))}
           </ul>
-          {!ro && <form action={saveRoom} className="flex gap-1"><input name="name" className="input" placeholder="Neuer Raum" /><SubmitButton size="sm">+</SubmitButton></form>}
+          {!ro && <form action={saveRoom} className="flex gap-1"><input name="name" className="input" placeholder="Neuer Raum" /><input type="hidden" name="capabilities" value="untersuchung" /><SubmitButton size="sm">+</SubmitButton></form>}
         </Card>
 
         <Card title="Kategorien der Patientenakte">
@@ -125,15 +135,19 @@ export default async function Settings({ searchParams }: PageProps<"/einstellung
         <p className="mb-3 text-xs text-slate-500">Vorlage: ein Feld pro Zeile. Optional Typ anhängen: <code>Blutdruck | text</code>, <code>Impulse | number</code>, <code>Anästhesie | checkbox</code> (Standard: mehrzeiliger Text).</p>
         <div className="space-y-3">
           {[...((types ?? []) as AppointmentType[]), undefined].map((t, i) => (
-            <form key={t?.id ?? `neu-${i}`} action={saveType} className={`grid gap-2 rounded-md border p-3 sm:grid-cols-[1fr_7rem_6rem] ${t ? "border-slate-200" : "border-dashed border-brand-300"}`}>
+            <form key={t?.id ?? `neu-${i}`} action={saveType} className={`grid gap-2 rounded-md border p-3 sm:grid-cols-[1fr_7rem_6rem_12rem] ${t ? "border-slate-200" : "border-dashed border-brand-300"}`}>
               {t && <input type="hidden" name="id" value={t.id} />}
               <fieldset disabled={ro} className="contents">
                 <input name="name" className="input" defaultValue={t?.name} placeholder="Neuer Termintyp" />
                 <input name="default_minutes" type="number" min={1} className="input" defaultValue={t?.default_minutes ?? p.slot_minutes} title="Standarddauer (min)" />
                 <input name="color" type="color" className="input h-9 p-1" defaultValue={t?.color ?? "#6b8bb0"} />
-                <textarea name="template" rows={2} className="input sm:col-span-3" defaultValue={t ? tmpl(t) : ""} placeholder="Protokollfelder (eine Zeile pro Feld)" />
+                <select name="required_capability" className="input" defaultValue={t?.required_capability ?? ""} title="Benötigter Raum">
+                  <option value="">Raum: beliebig</option>
+                  {Object.entries(ROOM_CAPABILITIES).map(([k, l]) => <option key={k} value={k}>Raum mit {l}</option>)}
+                </select>
+                <textarea name="template" rows={2} className="input sm:col-span-4" defaultValue={t ? tmpl(t) : ""} placeholder="Protokollfelder (eine Zeile pro Feld)" />
                 {!ro && (
-                  <div className="flex gap-2 sm:col-span-3">
+                  <div className="flex gap-2 sm:col-span-4">
                     <SubmitButton size="sm">{t ? "Speichern" : "Hinzufügen"}</SubmitButton>
                     {t && <SubmitButton size="sm" variant="ghost" name="delete" value="1" confirm="Termintyp entfernen?">Entfernen</SubmitButton>}
                   </div>

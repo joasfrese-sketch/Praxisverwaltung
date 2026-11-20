@@ -41,9 +41,9 @@ export default function RegisterPage() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <h1 className="text-lg font-semibold">Konto erstellen</h1>
+      <h1 className="text-lg font-semibold">Neue Praxis registrieren</h1>
       <p className="text-sm text-slate-600">
-        Für Praxisinhaber und Mitarbeitende. Wurdest du von deiner Praxis eingeladen, nutze die E-Mail-Adresse, die dort hinterlegt ist – du wirst dann automatisch zugeordnet.
+        Nur für <b>neue Praxen</b> (Inhaber/Admin). Mitarbeitende registrieren sich nicht hier, sondern bekommen von ihrer Praxis einen persönlichen <b>Einladungslink</b>.
       </p>
       <label className="block">
         <span className="label">E-Mail</span>

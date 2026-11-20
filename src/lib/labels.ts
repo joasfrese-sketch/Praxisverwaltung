@@ -131,3 +131,28 @@ export const DEFAULT_TYPES: Record<PracticeType, { name: string; minutes: number
 };
 
 export const STAFF_COLORS = ["#4f6d8f", "#5b8a8c", "#7a6f9b", "#9b7a5b", "#5f7f5a", "#8c5b6e", "#3f5f7f", "#6b8bb0"];
+
+export const ABSENCE_STATUS: Record<"beantragt" | "genehmigt" | "abgelehnt", { label: string; cls: string }> = {
+  beantragt: { label: "Beantragt", cls: "bg-amber-100 text-amber-800" },
+  genehmigt: { label: "Genehmigt", cls: "bg-emerald-100 text-emerald-800" },
+  abgelehnt: { label: "Abgelehnt", cls: "bg-slate-200 text-slate-600 line-through" },
+};
+
+/** Raum-Fähigkeiten (Ausstattung). Terminarten können eine davon voraussetzen. */
+export const ROOM_CAPABILITIES: Record<string, string> = {
+  untersuchung: "Untersuchung",
+  roentgen: "Röntgen",
+  eingriff: "Eingriff / OP",
+  prophylaxe: "Prophylaxe",
+  labor: "Labor / Blutabnahme",
+  beratung: "Beratung / Gespräch",
+  therapie: "Therapie / Behandlung",
+};
+
+export const FONT_SCALES = [
+  { value: 90, label: "Klein" },
+  { value: 100, label: "Normal" },
+  { value: 112, label: "Groß" },
+  { value: 125, label: "Sehr groß" },
+  { value: 140, label: "Maximal" },
+] as const;

@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { getContext } from "@/lib/context";
 import { loadStaff, loadTypes } from "@/lib/data";
-import { addWaitlist, resolveWaitlist } from "@/app/actions/organisation";
+import { addWaitlist, resolveWaitlist, updateWaitlist } from "@/app/actions/organisation";
 import { Badge, Card, Empty, PageHeader, patientName, staffName } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
-import { PlanTabs } from "@/components/plan-tabs";
 import { fmtDate, fmtDateTime, minutesBetween, toZoned } from "@/lib/time";
 import type { Appointment } from "@/lib/types";
 
@@ -55,7 +54,6 @@ export default async function Waitlist({ searchParams }: PageProps<"/warteliste"
 
   return (
     <>
-      <PlanTabs active="warteliste" />
       <PageHeader title="Warteliste" subtitle="Patienten, die kurzfristig einen frei werdenden Termin übernehmen möchten." />
 
       {slot && (
@@ -82,8 +80,9 @@ export default async function Waitlist({ searchParams }: PageProps<"/warteliste"
           {entries.length ? (
             <ul className="divide-y divide-slate-100 text-sm">
               {entries.map((e) => (
-                <li key={e.id} className="flex flex-wrap items-center gap-2 py-2">
-                  <div className="flex-1">
+                <li key={e.id} className="py-2">
+                 <div className="flex flex-wrap items-center gap-2">
+                  <div className="min-w-0 flex-1">
                     <Link href={`/patienten/${e.patient_id}`} className="font-medium hover:underline">{patientName(e.patient)}</Link>
                     {e.priority > 0 && <Badge tone="amber">Priorität</Badge>}
                     <div className="text-xs text-slate-500">
@@ -93,6 +92,30 @@ export default async function Waitlist({ searchParams }: PageProps<"/warteliste"
                     </div>
                   </div>
                   <form action={resolveWaitlist}><input type="hidden" name="id" value={e.id} /><SubmitButton size="sm" variant="ghost">Erledigt</SubmitButton></form>
+                 </div>
+                  <details className="group mt-1">
+                    <summary className="inline-flex cursor-pointer list-none items-center rounded px-1.5 py-0.5 text-xs font-medium text-brand-700 hover:bg-brand-50">Bearbeiten</summary>
+                    <form action={updateWaitlist} className="mt-2 grid gap-2 rounded-md border border-slate-200 bg-slate-50 p-3 sm:grid-cols-2">
+                      <input type="hidden" name="id" value={e.id} />
+                      <label className="block"><span className="label">Behandler</span>
+                        <select name="doctor_id" className="input" defaultValue={e.doctor_id ?? ""}>
+                          <option value="">Behandler egal</option>
+                          {providers.map((s) => <option key={s.id} value={s.id}>{staffName(s)}</option>)}
+                        </select>
+                      </label>
+                      <label className="block"><span className="label">Leistung</span>
+                        <select name="type_id" className="input" defaultValue={e.type_id ?? ""}>
+                          <option value="">Leistung egal</option>
+                          {types.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                        </select>
+                      </label>
+                      <label className="block"><span className="label">frühestens</span><input type="date" name="earliest_date" className="input" defaultValue={e.earliest_date ?? ""} /></label>
+                      <label className="block"><span className="label">spätestens</span><input type="date" name="latest_date" className="input" defaultValue={e.latest_date ?? ""} /></label>
+                      <label className="block sm:col-span-2"><span className="label">Notiz</span><input name="note" className="input" defaultValue={e.note ?? ""} /></label>
+                      <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="priority" value="1" defaultChecked={e.priority > 0} className="accent-brand-600" /> dringend</label>
+                      <div className="sm:text-right"><SubmitButton size="sm">Speichern</SubmitButton></div>
+                    </form>
+                  </details>
                 </li>
               ))}
             </ul>

@@ -63,7 +63,7 @@ export function TimeGrid({ columns, startMin, endMin, slot, tz, nowMin, colorFor
           <div className="h-12 border-b border-slate-200" />
           <div className="relative" style={{ height }}>
             {hours.map((m) => (
-              <div key={m} className="absolute right-1 -translate-y-1/2 text-[11px] text-slate-400 tabular-nums" style={{ top: (m - startMin) * PX }}>
+              <div key={m} className="absolute right-1 -translate-y-1/2 text-[0.6875rem] text-slate-400 tabular-nums" style={{ top: (m - startMin) * PX }}>
                 {minutesToHhmm(m)}
               </div>
             ))}
@@ -78,7 +78,7 @@ export function TimeGrid({ columns, startMin, endMin, slot, tz, nowMin, colorFor
                   {c.color && <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: c.color }} />}
                   {c.label}
                 </div>
-                <div className="truncate text-[11px] text-slate-500">{c.absent ? <span className="font-medium text-rose-700">Abwesend: {c.absent}</span> : c.sub}</div>
+                <div className="truncate text-[0.6875rem] text-slate-500">{c.absent ? <span className="font-medium text-rose-700">Abwesend: {c.absent}</span> : c.sub}</div>
               </div>
               <div className={`relative ${c.absent ? "hatch" : "bg-slate-50"}`} style={{ height }}>
                 {c.open.map(([o, e], i) => (
@@ -93,7 +93,7 @@ export function TimeGrid({ columns, startMin, endMin, slot, tz, nowMin, colorFor
                     style={{ top: (m - startMin) * PX, height: slotStep * PX }}
                     title={`Neuer Termin ${minutesToHhmm(m)}`}
                   >
-                    <span className="hidden pl-1 text-[10px] text-brand-600 group-hover:inline">+ {minutesToHhmm(m)}</span>
+                    <span className="hidden pl-1 text-[0.625rem] text-brand-600 group-hover:inline">+ {minutesToHhmm(m)}</span>
                   </Link>
                 ))}
                 {nowMin && nowMin.day === c.day && nowMin.min > startMin && nowMin.min < endMin && (
@@ -109,7 +109,7 @@ export function TimeGrid({ columns, startMin, endMin, slot, tz, nowMin, colorFor
                     <Link
                       key={a.id}
                       href={`/termine/${a.id}`}
-                      className={`absolute z-10 overflow-hidden rounded-md border-l-4 px-1.5 py-0.5 text-[11px] leading-tight shadow-xs ring-1 ring-inset hover:z-30 hover:shadow-md ${STATUS[a.status].cls}`}
+                      className={`absolute z-10 overflow-hidden rounded-md border-l-4 px-1.5 py-0.5 text-[0.6875rem] leading-tight shadow-xs ring-1 ring-inset hover:z-30 hover:shadow-md ${STATUS[a.status].cls}`}
                       style={{
                         top, height: Math.max(dur * PX - 2, 16), borderLeftColor: color,
                         left: `calc(${(l.lane / l.of) * 100}% + 2px)`, width: `calc(${100 / l.of}% - 4px)`,

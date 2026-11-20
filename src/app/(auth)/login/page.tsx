@@ -78,7 +78,7 @@ export default function LoginPage() {
         {busy ? "Anmelden …" : "Anmelden"}
       </button>
       <p className="text-center text-sm text-slate-500">
-        Neu hier? <Link href="/registrieren" className="font-medium text-brand-700 hover:underline">Konto erstellen</Link>
+        Mitarbeitende: bitte den Einladungslink der Praxis nutzen.<br />Neue Praxis? <Link href="/registrieren" className="font-medium text-brand-700 hover:underline">Praxis registrieren</Link>
       </p>
     </form>
   );

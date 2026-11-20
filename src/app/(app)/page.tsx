@@ -4,10 +4,11 @@ import { MonitorPlay } from "lucide-react";
 import { getContext } from "@/lib/context";
 import { loadAbsences, loadAppointments, loadRooms, loadStaff } from "@/lib/data";
 import { detectDelays } from "@/lib/delays";
-import { dayRange, fmtDateTime, fmtDay, today } from "@/lib/time";
+import { dayRange, fmtDateTime, fmtDay, fmtTime, today } from "@/lib/time";
 import { ABSENCE, ACTIVE_STATUSES, isProvider } from "@/lib/labels";
 import { Notice } from "@/components/ui";
-import { FlowBoard, type FlowAppt } from "@/components/today/flow-board";
+import { FlowBoard, type ColumnKey, type FlowAppt } from "@/components/today/flow-board";
+import { RoomStatus, type RoomState } from "@/components/today/room-status";
 import { Attention } from "@/components/today/attention";
 import { DoctorFilter } from "@/components/today/doctor-filter";
 import { ForYou } from "@/components/today/for-you";
@@ -24,7 +25,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
   const now = new Date();
   const { from, to } = dayRange(day, tz);
 
-  const [appts, { providers, byId }, rooms, absences, tasksRes, overdueRes, notesRes, freedRes, waitRes, catsRes] = await Promise.all([
+  const [appts, { providers, byId }, rooms, absences, tasksRes, overdueRes, notesRes, freedRes, waitRes, catsRes, requestsRes] = await Promise.all([
     loadAppointments(supabase, practice.id, from, to),
     loadStaff(supabase, practice.id),
     loadRooms(supabase, practice.id),
@@ -38,6 +39,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
     supabase.from("appointments").select("id", { count: "exact", head: true }).eq("practice_id", practice.id).eq("status", "abgesagt").gte("starts_at", now.toISOString()),
     supabase.from("waitlist_entries").select("id", { count: "exact", head: true }).eq("practice_id", practice.id).is("resolved_at", null),
     canReadMedical ? supabase.from("record_categories").select("id").eq("practice_id", practice.id).eq("is_warning", true) : Promise.resolve({ data: [] as { id: string }[] }),
+    me.is_admin ? supabase.from("staff_absences").select("id", { count: "exact", head: true }).eq("practice_id", practice.id).eq("status", "beantragt") : Promise.resolve({ count: 0 }),
   ]);
 
   // Wer wird angezeigt: Ärzte sehen standardmäßig sich selbst, der Empfang alle.
@@ -64,6 +66,20 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
       doctorColor: d?.color ?? "#94a3b8", doctorName: d ? short(d) : "", roomName: a.room_id ? roomName.get(a.room_id) ?? null : null, warn: warnPatients.has(a.patient_id),
     };
   });
+
+  // Raumstatus: belegt, solange dort jemand in Behandlung ist (unabhängig vom Arzt-Filter)
+  const roomStates: RoomState[] = rooms.filter((r) => r.active).map((r) => {
+    const cur = appts.find((a) => a.room_id === r.id && a.status === "in_behandlung");
+    const d = cur ? byId.get(cur.doctor_id) : undefined;
+    const next = appts.filter((a) => a.room_id === r.id && (a.status === "geplant" || a.status === "bestaetigt" || a.status === "eingecheckt") && a.starts_at >= now.toISOString())
+      .sort((a, b) => a.starts_at.localeCompare(b.starts_at))[0];
+    return {
+      id: r.id, name: r.name, capabilities: r.capabilities ?? [],
+      busy: cur ? { patient: cur.patient ? cur.patient.last_name : "—", doctor: d ? short(d) : "", since: fmtTime(cur.actual_start ?? cur.starts_at, tz), color: d?.color ?? "#94a3b8" } : null,
+      next: next ? fmtTime(next.starts_at, tz) : null,
+    };
+  });
+  const spalte = (["erwartet", "wartezimmer", "behandlung", "erledigt"] as const).find((k) => k === sp.spalte) as ColumnKey | undefined;
 
   const delays = detectDelays(visible.filter((a) => ACTIVE_STATUSES.includes(a.status)), now);
   const absent = absences
@@ -115,10 +131,13 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
         freed={freedRes.count ?? 0}
         waitlist={waitRes.count ?? 0}
         overdueTasks={overdueRes.count ?? 0}
+        absenceRequests={requestsRes.count ?? 0}
       />
 
+      <RoomStatus rooms={roomStates} />
+
       <div className="grid items-start gap-4 2xl:grid-cols-[minmax(0,1fr)_300px]">
-        <FlowBoard appts={flow} nowIso={now.toISOString()} tz={tz} back={`/?arzt=${arzt}`} />
+        <FlowBoard appts={flow} nowIso={now.toISOString()} tz={tz} back={`/?arzt=${arzt}`} spalte={spalte} />
         <ForYou notes={notes} tasks={tasks} absent={absences.map((ab) => ({ id: ab.id, name: short(byId.get(ab.staff_id) ?? { title: null, last_name: "Mitarbeiter" }), kind: ABSENCE[ab.kind] }))} />
       </div>
     </div>

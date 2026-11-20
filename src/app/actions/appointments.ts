@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getContext } from "@/lib/context";
 import { addDays, hhmmToMinutes, minutesToHhmm, today, toZoned, weekday, zonedToUtc } from "@/lib/time";
 import type { AppointmentStatus } from "@/lib/types";
+import { autoAssignRooms, roomForCall } from "@/lib/rooms";
 
 const s = (f: FormData, k: string) => {
   const v = f.get(k);
@@ -45,7 +46,7 @@ async function findConflicts(
   }
   const day = s.date;
   const { data: abs } = await supabase
-    .from("staff_absences").select("id").eq("staff_id", a.doctor_id).lte("starts_on", day).gte("ends_on", day).limit(1);
+    .from("staff_absences").select("id").eq("staff_id", a.doctor_id).eq("status", "genehmigt").lte("starts_on", day).gte("ends_on", day).limit(1);
   if (abs?.length) msgs.push("Behandler ist an diesem Tag abwesend.");
   return [...new Set(msgs)];
 }
@@ -66,7 +67,7 @@ function readAppointment(f: FormData, tz: string) {
     starts_at: start.toISOString(),
     ends_at: end.toISOString(),
     location_kind,
-    room_id: location_kind === "praxis" ? s(f, "room_id") : null,
+    room_id: location_kind === "praxis" && s(f, "room_id") !== "auto" ? s(f, "room_id") : null,
     address: location_kind === "hausbesuch" ? s(f, "address") : null,
     video_url: location_kind === "video" ? s(f, "video_url") : null,
     is_emergency: f.get("is_emergency") === "on",
@@ -86,26 +87,32 @@ export async function saveAppointment(_: FormState, f: FormData): Promise<FormSt
     }
     if (!a.reason) return { error: "Bitte einen Grund angeben oder einen Termintyp wählen." };
   }
+  const autoRoom = a.location_kind === "praxis" && s(f, "room_id") === "auto";
   if (f.get("force") !== "1") {
     const conflicts = await findConflicts(ctx, a, id ?? undefined);
     if (conflicts.length) return { conflicts };
   }
   const repeat = Math.max(1, Math.min(52, Number(s(f, "repeat_count") ?? 1)));
   const interval = Number(s(f, "repeat_days") ?? 7);
+  const shift = (iso: string, i: number) => new Date(new Date(iso).getTime() + i * interval * 86400000).toISOString();
+  const times = Array.from({ length: id ? 1 : repeat }, (_, i) => ({ starts_at: shift(a.starts_at, i), ends_at: shift(a.ends_at, i) }));
+  let rooms: (string | null)[] = times.map(() => a.room_id);
+  if (autoRoom) {
+    let required: string | null = null;
+    if (a.type_id) {
+      const { data: t } = await ctx.supabase.from("appointment_types").select("required_capability").eq("id", a.type_id).single();
+      required = t?.required_capability ?? null;
+    }
+    rooms = await autoAssignRooms(ctx.supabase, ctx.practice.id, times, required, id);
+  }
 
   if (id) {
-    const { error } = await ctx.supabase.from("appointments").update(a).eq("id", id);
+    const { error } = await ctx.supabase.from("appointments").update({ ...a, room_id: rooms[0] }).eq("id", id);
     if (error) return { error: error.message };
     revalidatePath("/", "layout");
     redirect(`/termine/${id}`);
   }
-  const rows = Array.from({ length: repeat }, (_, i) => ({
-    ...a,
-    practice_id: ctx.practice.id,
-    created_by: ctx.me.id,
-    starts_at: new Date(new Date(a.starts_at).getTime() + i * interval * 86400000).toISOString(),
-    ends_at: new Date(new Date(a.ends_at).getTime() + i * interval * 86400000).toISOString(),
-  }));
+  const rows = times.map((t, i) => ({ ...a, ...t, room_id: rooms[i], practice_id: ctx.practice.id, created_by: ctx.me.id }));
   const { data, error } = await ctx.supabase.from("appointments").insert(rows).select("id");
   if (error) return { error: error.message };
   const wl = s(f, "waitlist_id");
@@ -115,10 +122,15 @@ export async function saveAppointment(_: FormState, f: FormData): Promise<FormSt
 }
 
 export async function setStatus(f: FormData) {
-  const { supabase } = await getContext();
+  const { supabase, practice } = await getContext();
   const id = String(f.get("id"));
   const status = String(f.get("status")) as AppointmentStatus;
   const patch: Record<string, unknown> = { status };
+  // Aufrufen: freien, passenden Raum festlegen – die Aufrufanzeige zeigt ihn dem Patienten
+  if (status === "in_behandlung") {
+    const room = await roomForCall(supabase, practice.id, id);
+    if (room !== undefined) patch.room_id = room;
+  }
   if (status === "abgesagt") {
     patch.cancelled_by = "praxis";
     patch.cancel_reason = s(f, "cancel_reason");
@@ -203,7 +215,7 @@ export async function suggestSlots(doctorId: string, minutes: number, fromDate?:
     supabase.from("opening_hours").select("weekday, opens, closes").eq("practice_id", practice.id),
     supabase.from("appointments").select("id, starts_at, ends_at").eq("doctor_id", doctorId).not("status", "in", "(abgesagt,nicht_erschienen)")
       .gte("ends_at", zonedToUtc(`${startDay}T00:00`, tz).toISOString()).lt("starts_at", zonedToUtc(`${endDay}T00:00`, tz).toISOString()),
-    supabase.from("staff_absences").select("starts_on, ends_on").eq("staff_id", doctorId).lte("starts_on", endDay).gte("ends_on", startDay),
+    supabase.from("staff_absences").select("starts_on, ends_on").eq("staff_id", doctorId).eq("status", "genehmigt").lte("starts_on", endDay).gte("ends_on", startDay),
   ]);
   const step = Math.max(5, practice.slot_minutes);
   const buffer = (practice.buffer_minutes ?? 0) * 60000;
