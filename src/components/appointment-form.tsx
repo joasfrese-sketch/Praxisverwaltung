@@ -4,6 +4,7 @@ import { useActionState, useEffect, useMemo, useState } from "react";
 import { saveAppointment, suggestSlots, type FormState, type Slot } from "@/app/actions/appointments";
 import type { AppointmentType, LocationKind, Room, Staff } from "@/lib/types";
 import { LOCATION, ROOM_CAPABILITIES, isProvider } from "@/lib/labels";
+import { DayPlan } from "@/components/day-plan";
 
 type P = { id: string; first_name: string; last_name: string; birth_date: string | null };
 export type AppointmentDefaults = {
@@ -63,7 +64,8 @@ export function AppointmentForm({ patients, staff, rooms, types, defaults, slot 
   const selected = patients.find((p) => p.id === patientId);
 
   return (
-    <form action={action} className="space-y-4">
+    <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,46rem)_minmax(0,1fr)]">
+    <form action={action} className="min-w-0 space-y-4">
       {defaults.id && <input type="hidden" name="id" value={defaults.id} />}
       {defaults.waitlist_id && <input type="hidden" name="waitlist_id" value={defaults.waitlist_id} />}
       <input type="hidden" name="patient_id" value={patientId} />
@@ -231,5 +233,10 @@ export function AppointmentForm({ patients, staff, rooms, types, defaults, slot 
         <button className="btn-primary" disabled={pending || !patientId}>{pending ? "Speichern …" : defaults.id ? "Änderungen speichern" : "Termin anlegen"}</button>
       </div>
     </form>
+    <div className="min-w-0 xl:sticky xl:top-16">
+      <DayPlan date={date} onDate={setDate} doctorId={doctorId} time={time} duration={duration} slot={slot} excludeId={defaults.id}
+        onPick={(d, t) => { setDoctorId(d); setTime(t); }} />
+    </div>
+    </div>
   );
 }

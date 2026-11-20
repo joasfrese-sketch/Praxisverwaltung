@@ -34,7 +34,7 @@ export default async function NewAppointment({ searchParams }: PageProps<"/termi
   if (str("dauer")) defaults.duration = Number(str("dauer"));
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-[1500px]">
       <PageHeader title="Neuer Termin" />
       <AppointmentForm patients={patients ?? []} staff={staff} rooms={rooms} types={types} defaults={defaults} slot={practice.slot_minutes} />
     </div>
