@@ -150,7 +150,7 @@ function DoneList({ list, now, tz }: { list: FlowAppt[]; now: Date; tz: string }
             <Link href={`/termine/${a.id}`} className="flex items-center gap-2 px-2.5 py-1.5 text-sm hover:bg-slate-50">
               <span className="w-10 text-xs text-slate-500 tabular-nums">{fmtTime(a.starts_at, tz)}</span>
               <span className="min-w-0 flex-1 truncate">{a.patientName}</span>
-              {a.status === "nicht_erschienen" ? <span className="text-xs font-medium text-warn">nicht erschienen</span> : (
+              {a.status === "nicht_erschienen" ? <span className="shrink-0 text-xs font-medium text-warn">nicht da</span> : (
                 <span className="inline-flex items-center gap-1 text-xs text-slate-500"><Check className="h-3.5 w-3.5 text-st-done" />{inf?.text}</span>
               )}
             </Link>
@@ -162,7 +162,7 @@ function DoneList({ list, now, tz }: { list: FlowAppt[]; now: Date; tz: string }
 }
 
 /**
- * Patientenfluss: vier kompakte Spalten (je höchstens drei Karten). Jede Spalte lässt sich
+ * Patientenfluss: vier kompakte Spalten, je die nächsten drei Einträge. Jede Spalte lässt sich
  * mit „Alle anzeigen“ bzw. dem Vollbild-Symbol einzeln über den ganzen Bildschirm öffnen.
  */
 export function FlowBoard({ appts, nowIso, tz, back, spalte }: { appts: FlowAppt[]; nowIso: string; tz: string; back: string; spalte?: ColumnKey }) {
@@ -183,7 +183,7 @@ export function FlowBoard({ appts, nowIso, tz, back, spalte }: { appts: FlowAppt
   ];
   const render = (c: (typeof cols)[number], full: boolean) => (
     <Column key={c.id} id={c.id} title={c.title} hint={c.hint} color={c.color} count={c.list.length} order={c.order} empty={c.empty} href={href} full={full}>
-      {c.id === "erledigt" ? <DoneList list={full ? c.list : c.list.slice(0, COMPACT + 2)} now={now} tz={tz} /> : cards(c.list)}
+      {c.id === "erledigt" ? <DoneList list={full ? c.list : c.list.slice(0, COMPACT)} now={now} tz={tz} /> : cards(c.list)}
     </Column>
   );
 
@@ -203,5 +203,5 @@ export function FlowBoard({ appts, nowIso, tz, back, spalte }: { appts: FlowAppt
       </div>
     );
   }
-  return <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">{cols.map((c) => render(c, false))}</div>;
+  return <div className="grid items-start gap-3 md:grid-cols-2 xl:grid-cols-4">{cols.map((c) => render(c, false))}</div>;
 }
