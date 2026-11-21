@@ -25,7 +25,7 @@ export function SideNav({ tasks, chat = 0 }: { tasks: number; chat?: number }) {
                   >
                     {active && <span className="absolute inset-y-1.5 left-0 w-[3px] rounded-r bg-brand-300" />}
                     <it.icon className="h-4 w-4 shrink-0" />
-                    <span className="flex-1">{it.label}</span>
+                    <span className="flex-1 whitespace-nowrap pr-2">{it.label}</span>
                     {badge > 0 && <span className="rounded-full bg-amber-400 px-1.5 text-xs font-semibold text-brand-900">{badge}</span>}
                   </Link>
                 </li>
