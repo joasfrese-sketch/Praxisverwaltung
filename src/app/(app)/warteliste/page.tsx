@@ -42,6 +42,22 @@ export default async function Waitlist({ searchParams }: PageProps<"/warteliste"
         .sort((a, b) => b.score - a.score)
     : [];
 
+  // Direkt zur Terminsuche: Patient, Behandler, Leistung und Wünsche (Zeitraum, Tageszeit aus der Notiz) übernehmen
+  const searchLink = (e: Entry) => {
+    const p = new URLSearchParams({ patient: e.patient_id, warteliste: e.id });
+    if (e.doctor_id) p.set("behandler", e.doctor_id);
+    if (e.type_id) p.set("typ", e.type_id);
+    if (e.earliest_date) p.set("von", e.earliest_date);
+    if (e.latest_date) p.set("bis", e.latest_date);
+    const note = e.note ?? "";
+    if (note) p.set("wunsch", note);
+    const ab = note.match(/ab\s*(\d{1,2})(?:[:.](\d{2}))?\s*(?:uhr|h)?/i);
+    if (ab && Number(ab[1]) >= 6 && Number(ab[1]) <= 20) p.set("ab", `${ab[1].padStart(2, "0")}:${ab[2] ?? "00"}`);
+    else if (/nachmittag/i.test(note)) p.set("tageszeit", "nach");
+    else if (/vormittag|morgens/i.test(note)) p.set("tageszeit", "vor");
+    return `/termine/neu?${p}`;
+  };
+
   const bookLink = (e: Entry) => {
     const z = toZoned(slot!.starts_at, tz);
     const p = new URLSearchParams({
@@ -91,6 +107,7 @@ export default async function Waitlist({ searchParams }: PageProps<"/warteliste"
                       {e.note && ` · ${e.note}`} · seit {fmtDate(e.created_at, tz)}
                     </div>
                   </div>
+                  <Link href={searchLink(e)} className="btn-primary btn-sm">Termin suchen</Link>
                   <form action={resolveWaitlist}><input type="hidden" name="id" value={e.id} /><SubmitButton size="sm" variant="ghost">Erledigt</SubmitButton></form>
                  </div>
                   <details className="group mt-1">

@@ -28,6 +28,11 @@ export default async function NewAppointment({ searchParams }: PageProps<"/termi
     type_id: str("typ"),
     waitlist_id: str("warteliste"),
     anchor: str("datum") ? "date" : "next",
+    wish: str("von") || str("bis") || str("wunsch") || str("ab") || str("tageszeit") ? {
+      from: str("von"), to: str("bis"), note: str("wunsch"),
+      part: str("tageszeit") === "vor" || str("tageszeit") === "nach" ? (str("tageszeit") as "vor" | "nach") : undefined,
+      after: str("ab") && /^\d{1,2}:\d{2}$/.test(str("ab")!) ? Number(str("ab")!.split(":")[0]) * 60 + Number(str("ab")!.split(":")[1]) : undefined,
+    } : undefined,
   } as Parameters<typeof AppointmentForm>[0]["defaults"];
   const t = types.find((x) => x.id === defaults.type_id);
   if (t) defaults = { ...defaults, duration: t.default_minutes };

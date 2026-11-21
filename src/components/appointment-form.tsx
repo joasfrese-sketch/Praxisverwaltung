@@ -5,7 +5,7 @@ import { saveAppointment, type FormState } from "@/app/actions/appointments";
 import type { AppointmentType, LocationKind, Room, Staff } from "@/lib/types";
 import { LOCATION, ROOM_CAPABILITIES, isProvider } from "@/lib/labels";
 import { DayPlan } from "@/components/day-plan";
-import { SlotFinder } from "@/components/slot-finder";
+import { SlotFinder, type Wish } from "@/components/slot-finder";
 
 type P = { id: string; first_name: string; last_name: string; birth_date: string | null };
 export type AppointmentDefaults = {
@@ -14,6 +14,8 @@ export type AppointmentDefaults = {
   video_url?: string | null; is_emergency?: boolean; notes?: string | null; waitlist_id?: string;
   /** "date": Datum ist vorgegeben (Kalender-Klick, Bearbeiten); sonst Suche ab heute */
   anchor?: "next" | "date";
+  /** Wünsche des Patienten (z. B. aus der Warteliste) */
+  wish?: Wish;
 };
 
 const dayLabel = (d: string) => new Intl.DateTimeFormat("de-DE", { weekday: "short", day: "2-digit", month: "2-digit", timeZone: "UTC" }).format(new Date(`${d}T12:00:00Z`));
@@ -100,7 +102,7 @@ export function AppointmentForm({ patients, staff, rooms, types, defaults, slot,
           </label>
         </div>
         <SlotFinder today={today} doctorId={doctorId} doctorColor={doctor?.color ?? "#6f8cad"} duration={duration >= 1 ? duration : 15} slot={slot}
-          excludeId={defaults.id} date={date} time={time} initialWhen={defaults.anchor === "date" ? "date" : "next"}
+          excludeId={defaults.id} date={date} time={time} initialWhen={defaults.anchor === "date" ? "date" : "next"} wish={defaults.wish}
           onPick={(d, t) => { setDate(d); setTime(t); }} />
         <div>
           <button type="button" className="btn-ghost btn-sm" aria-expanded={showDay} onClick={() => setShowDay(!showDay)}>
