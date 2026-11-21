@@ -24,23 +24,23 @@ export interface ShellProps {
 export function AppShell({ practiceName, practiceId, practices, user, unread, tasks, chat = 0, realtime = true, presence, children }: ShellProps) {
   return (
     <div className="min-h-screen lg:flex">
-      <aside className="hidden bg-brand-900 text-slate-300 lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-56 lg:shrink-0 lg:flex-col lg:px-2.5 lg:py-4">
+      <aside className="hidden bg-brand-900 text-slate-300 lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-auto lg:shrink-0 lg:flex-col lg:px-2.5 lg:py-4">
         <Link href="/" className="mb-5 flex items-center gap-2.5 px-2 text-white">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/icon.svg" alt="" className="h-7 w-7 shrink-0" />
-          <span className="truncate text-[0.9375rem] font-semibold">{practiceName}</span>
+          <span className="w-0 flex-1 truncate text-[0.9375rem] font-semibold" title={practiceName}>{practiceName}</span>
         </Link>
         <SideNav tasks={tasks} chat={chat} />
         <div className="mt-auto space-y-2 border-t border-white/10 pt-3">
           {practices.length > 1 && (
-            <form action={switchPractice} className="flex gap-1 px-1">
+            <form action={switchPractice} className="flex w-0 min-w-full gap-1 px-1">
               <select name="practice_id" defaultValue={practiceId} className="min-w-0 flex-1 rounded-md border border-white/20 bg-white/5 px-2 py-1 text-xs text-white" aria-label="Praxis">
                 {practices.map((p) => <option key={p.id} value={p.id} className="text-slate-900">{p.name}</option>)}
               </select>
               <button className="rounded-md px-2 text-xs text-slate-300 hover:bg-white/10">Wechseln</button>
             </form>
           )}
-          <Link href="/einstellungen/sicherheit" className="block rounded-md px-2 py-1 hover:bg-white/10" title="Mein Konto: Schriftgröße, 2FA">
+          <Link href="/einstellungen/sicherheit" className="block w-0 min-w-full rounded-md px-2 py-1 hover:bg-white/10" title="Mein Konto: Schriftgröße, 2FA">
             <div className="truncate text-sm font-medium text-white">{user.name}</div>
             <div className="truncate text-xs text-slate-400">{user.role} · Mein Konto</div>
           </Link>

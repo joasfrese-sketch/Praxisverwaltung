@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { loadRangePlan, type RangePlan } from "@/app/actions/appointments";
 
-const PX = 1.1; // Pixel pro Minute
 const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 const addDays = (d: string, n: number) => { const x = new Date(`${d}T12:00:00Z`); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
 const addMonths = (d: string, n: number) => {
@@ -58,7 +57,26 @@ export function SlotFinder({ today, doctorId, doctorColor, duration, slot, exclu
   const [shift, setShift] = useState(0); // Zeitraum vor/zurück blättern
   const [plan, setPlan] = useState<RangePlan | null>(null);
   const [loading, setLoading] = useState(false);
+  const [offset, setOffset] = useState(0); // erster sichtbarer Tag, wenn nicht alle Tage auf den Bildschirm passen
   const req = useRef(0);
+
+  // Bildschirm ausmessen: Breite des Kalenders und Höhe des Fensters (ändert sich bei Drehen/Größe ändern)
+  const box = useRef<HTMLDivElement>(null);
+  const grid = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ w: 1000, h: 800, vw: 1280, above: 150 });
+  useEffect(() => {
+    const el = box.current;
+    const measure = () => {
+      // Platz über dem Raster innerhalb der Karte (Zeitraum-Zeile, Schnellwahl, Tageskopf)
+      const above = el && grid.current ? grid.current.getBoundingClientRect().top - el.getBoundingClientRect().top : 150;
+      setSize({ w: el?.clientWidth ?? 1000, h: window.innerHeight, vw: window.innerWidth, above });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (el) ro.observe(el);
+    window.addEventListener("resize", measure);
+    return () => { ro.disconnect(); window.removeEventListener("resize", measure); };
+  }, []);
 
   const t = target(when, today, anchor);
   const baseFrom = when === "next" ? today : addDays(t, -Math.floor(span / 2));
@@ -97,11 +115,32 @@ export function SlotFinder({ today, doctorId, doctorColor, duration, slot, exclu
   const all = days.flatMap((d) => d.open);
   const startMin = all.length ? Math.floor(Math.min(...all.map((o) => o[0])) / 60) * 60 : 8 * 60;
   const endMin = all.length ? Math.ceil(Math.max(...all.map((o) => o[1])) / 60) * 60 : 18 * 60;
+  // Höhe: der ganze Tag passt in die Fensterhöhe (abzüglich Kopfzeile, Tageskopf und Legende)
+  // Fenster − App-Kopfzeile − alles über dem Raster − Legende − untere Leiste (Tablet/Handy)
+  const bottomBar = size.vw < 1024 ? 64 : 0;
+  const avail = Math.max(260, size.h - 64 - size.above - 40 - bottomBar - 12);
+  // Handy: Felder groß genug zum Antippen (dann lieber senkrecht scrollen)
+  const PX = Math.min(1.6, Math.max(size.vw < 640 ? 0.9 : 0.5, avail / (endMin - startMin)));
   const height = (endMin - startMin) * PX;
+  const showLabels = Math.max(5, slot) * PX >= 12;
+  // Breite: so viele Tage wie nebeneinander passen (mind. 58 px je Tag), der Rest per Pfeil
+  const perView = Math.max(1, Math.floor((size.w - 44) / 58));
+  const maxOffset = Math.max(0, days.length - perView);
+  const first = Math.min(offset, maxOffset);
+  const visible = days.slice(first, first + perView);
+  const firstPerDay = visible.filter((d) => d.free.length).map((d) => ({ day: d.day, m: d.free[0] }));
+  const back = () => {
+    if (first > 0) setOffset(Math.max(0, first - perView));
+    else if (from > today) { setShift(shift - 1); setOffset(1e6); }
+  };
+  const forward = () => {
+    if (first < maxOffset) setOffset(first + perView);
+    else { setShift(shift + 1); setOffset(0); }
+  };
   const hours: number[] = [];
   for (let m = startMin; m <= endMin; m += 60) hours.push(m);
   const total = days.reduce((n, d) => n + d.free.length, 0);
-  const firstPerDay = days.filter((d) => d.free.length).map((d) => ({ day: d.day, m: d.free[0] })).slice(0, 10);
+  
 
   const chip = (on: boolean) => `rounded-full border px-3 py-1 text-sm ${on ? "border-brand-700 bg-brand-700 text-white" : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"}`;
 
@@ -111,16 +150,16 @@ export function SlotFinder({ today, doctorId, doctorColor, duration, slot, exclu
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="w-24 text-xs font-medium text-slate-600">Wann?</span>
           {WHEN.map((w) => (
-            <button key={w.key} type="button" aria-pressed={when === w.key} className={chip(when === w.key)} onClick={() => { setWhen(w.key); setShift(0); }}>{w.label}</button>
+            <button key={w.key} type="button" aria-pressed={when === w.key} className={chip(when === w.key)} onClick={() => { setWhen(w.key); setShift(0); setOffset(0); }}>{w.label}</button>
           ))}
           {when === "date" && (
-            <input type="date" className="input w-44" value={anchor} aria-label="Wunschdatum" onChange={(e) => { setAnchor(e.target.value); setShift(0); }} />
+            <input type="date" className="input w-44" value={anchor} aria-label="Wunschdatum" onChange={(e) => { setAnchor(e.target.value); setShift(0); setOffset(0); }} />
           )}
         </div>
         {when !== "next" && (
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="w-24 text-xs font-medium text-slate-600">Spielraum</span>
-            {SPANS.map((s) => <button key={s.v} type="button" aria-pressed={span === s.v} className={chip(span === s.v)} onClick={() => { setSpan(s.v); setShift(0); }}>{s.label}</button>)}
+            {SPANS.map((s) => <button key={s.v} type="button" aria-pressed={span === s.v} className={chip(span === s.v)} onClick={() => { setSpan(s.v); setShift(0); setOffset(0); }}>{s.label}</button>)}
           </div>
         )}
         <div className="flex flex-wrap items-center gap-1.5">
@@ -132,17 +171,20 @@ export function SlotFinder({ today, doctorId, doctorColor, duration, slot, exclu
       {!doctorId ? (
         <p className="rounded-md border border-dashed border-slate-300 px-3 py-4 text-center text-sm text-slate-500">Behandler wählen – dann erscheinen die freien Zeiten.</p>
       ) : (
-        <div className="rounded-lg border border-slate-200">
+        <div ref={box} className="rounded-lg border border-slate-200">
           <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-3 py-2">
-            <button type="button" className="btn-ghost btn-sm px-1.5" aria-label="Früherer Zeitraum" disabled={from <= today} onClick={() => setShift(shift - 1)}><ChevronLeft className="h-4 w-4" /></button>
+            <button type="button" className="btn-secondary btn-sm px-2" aria-label="Frühere Tage" disabled={first === 0 && from <= today} onClick={back}><ChevronLeft className="h-4 w-4" /></button>
             <div className="min-w-0 flex-1 text-sm">
               <b>{full(from)} – {full(to)}</b>
-              {when !== "next" && <span className="text-slate-500"> · rund um {full(t)}</span>}
+              {when !== "next" && shift === 0 && <span className="text-slate-500"> · rund um {full(t)}</span>}
+              {visible.length < days.length && (
+                <span className="block text-xs text-slate-500">Angezeigt: {short(visible[0].day)} – {short(visible[visible.length - 1].day)} · weitere Tage mit den Pfeilen</span>
+              )}
               <span className={`ml-2 rounded px-1.5 py-0.5 text-xs font-medium ${total ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
                 {loading ? "suche …" : `${total} freie Zeiten`}
               </span>
             </div>
-            <button type="button" className="btn-ghost btn-sm px-1.5" aria-label="Späterer Zeitraum" onClick={() => setShift(shift + 1)}><ChevronRight className="h-4 w-4" /></button>
+            <button type="button" className="btn-secondary btn-sm px-2" aria-label="Spätere Tage" onClick={forward}><ChevronRight className="h-4 w-4" /></button>
           </div>
 
           {firstPerDay.length > 0 && (
@@ -163,16 +205,16 @@ export function SlotFinder({ today, doctorId, doctorColor, duration, slot, exclu
           {days.length === 0 && !loading ? (
             <p className="p-6 text-center text-sm text-slate-500">In diesem Zeitraum hat die Praxis geschlossen. Mit dem Pfeil weiterblättern.</p>
           ) : (
-            <div className={`overflow-x-auto p-2 transition-opacity ${loading ? "opacity-50" : ""}`}>
-              <div className="flex min-w-fit">
-                <div className="sticky left-0 z-20 w-11 shrink-0 bg-white">
+            <div className={`p-2 transition-opacity ${loading ? "opacity-50" : ""}`}>
+              <div className="flex">
+                <div className="w-10 shrink-0">
                   <div className="h-9" />
-                  <div className="relative" style={{ height }}>
+                  <div ref={grid} className="relative" style={{ height }}>
                     {hours.map((m) => <div key={m} className="absolute right-1 -translate-y-1/2 text-[0.6875rem] text-slate-400 tabular-nums" style={{ top: (m - startMin) * PX }}>{hhmm(m)}</div>)}
                   </div>
                 </div>
-                {days.map((d) => (
-                  <div key={d.day} className="w-[5.5rem] shrink-0 border-l border-slate-200 sm:w-24 lg:flex-1">
+                {visible.map((d) => (
+                  <div key={d.day} className="min-w-0 flex-1 border-l border-slate-200">
                     <div className={`flex h-9 flex-col items-center justify-center text-xs leading-tight ${d.day === date ? "rounded-t bg-brand-100 font-semibold text-brand-900" : ""}`}>
                       <span>{fmt(d.day, { weekday: "short" })}</span>
                       <span className="tabular-nums">{fmt(d.day, { day: "2-digit", month: "2-digit" })}</span>
@@ -183,7 +225,7 @@ export function SlotFinder({ today, doctorId, doctorColor, duration, slot, exclu
                       {d.absent && <div className="absolute inset-x-0 top-2 text-center text-xs font-medium text-rose-700">{d.absent}</div>}
                       {d.appts.filter((a) => a.id !== excludeId).map((a) => (
                         <div key={a.id} title={`${hhmm(a.start)}–${hhmm(a.end)} ${a.label}: ${a.reason}`}
-                          className="absolute inset-x-0.5 z-10 overflow-hidden rounded border border-l-[3px] px-1 text-[0.625rem] leading-tight text-slate-800"
+                          className="absolute inset-x-0.5 z-10 overflow-hidden rounded border border-l-[3px] px-1 text-[0.625rem] leading-tight whitespace-nowrap text-slate-800"
                           style={{ top: Math.max(0, a.start - startMin) * PX, height: Math.max((a.end - a.start) * PX - 1, 10), borderColor: `${doctorColor}88`, borderLeftColor: doctorColor, background: `${doctorColor}33` }}>
                           {hhmm(a.start)} {a.label}
                         </div>
@@ -194,7 +236,7 @@ export function SlotFinder({ today, doctorId, doctorColor, duration, slot, exclu
                           <button key={m} type="button" onClick={() => onPick(d.day, hhmm(m))} aria-pressed={on} title={`${short(d.day)} ${hhmm(m)} wählen`}
                             className={`absolute inset-x-1 z-10 rounded-sm text-center text-[0.625rem] leading-none tabular-nums ${on ? "z-20 bg-brand-700 font-semibold text-white ring-2 ring-brand-900" : "bg-emerald-100 text-emerald-900 hover:bg-emerald-300"}`}
                             style={{ top: (m - startMin) * PX + 1, height: (on ? duration : step) * PX - 2 }}>
-                            {hhmm(m)}
+                            {showLabels || on ? hhmm(m) : null}
                           </button>
                         );
                       })}
