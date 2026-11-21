@@ -15,6 +15,7 @@ const addMonths = (d: string, n: number) => {
 const fmt = (d: string, o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("de-DE", { ...o, timeZone: "UTC" }).format(new Date(`${d}T12:00:00Z`));
 const short = (d: string) => fmt(d, { weekday: "short", day: "2-digit", month: "2-digit" });
 const full = (d: string) => fmt(d, { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" });
+const daysBetween = (a: string, b: string) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(`${a}T12:00:00Z`)) / 86400000);
 const isDay = (d: string) => /^\d{4}-\d{2}-\d{2}$/.test(d) && d >= "2000-01-01" && d <= "2199-12-31" && !Number.isNaN(Date.parse(`${d}T12:00:00Z`));
 
 const WHEN = [
@@ -25,6 +26,7 @@ const WHEN = [
   { key: "6m", label: "in 6 Monaten" },
   { key: "1y", label: "in 1 Jahr" },
   { key: "date", label: "um Datum …" },
+  { key: "range", label: "Wunschzeitraum" },
 ] as const;
 type When = (typeof WHEN)[number]["key"];
 const SPANS = [{ v: 7, label: "± 3 Tage" }, { v: 14, label: "± 1 Woche" }, { v: 28, label: "± 2 Wochen" }];
@@ -46,14 +48,18 @@ function target(when: When, today: string, anchor: string) {
  * Hauptaufgabe der Terminvergabe am Empfang: „Termin in ca. einem halben Jahr, mit etwas Spielraum“.
  * Zeigt den Zeitraum als Kalender des Behandlers; grüne Felder sind buchbare Startzeiten.
  */
-export function SlotFinder({ today, doctorId, doctorColor, duration, slot, excludeId, date, time, initialWhen, onPick }: {
+export type Wish = { from?: string; to?: string; part?: "vor" | "nach"; after?: number; note?: string };
+
+export function SlotFinder({ today, doctorId, doctorColor, duration, slot, excludeId, date, time, initialWhen, wish, onPick }: {
   today: string; doctorId: string; doctorColor: string; duration: number; slot: number; excludeId?: string;
-  date: string; time: string; initialWhen: When; onPick: (date: string, time: string) => void;
+  date: string; time: string; initialWhen: "next" | "date"; wish?: Wish; onPick: (date: string, time: string) => void;
 }) {
-  const [when, setWhen] = useState<When>(initialWhen);
+  const hasRange = !!(wish?.from || wish?.to);
+  const [when, setWhen] = useState<When>(hasRange ? "range" : initialWhen);
+  const [after, setAfter] = useState<number | null>(wish?.after ?? null);
   const [anchor, setAnchor] = useState(initialWhen === "date" && isDay(date) ? date : addMonths(today, 6));
   const [span, setSpan] = useState(14);
-  const [part, setPart] = useState<"egal" | "vor" | "nach">("egal");
+  const [part, setPart] = useState<"egal" | "vor" | "nach">(wish?.part ?? "egal");
   const [shift, setShift] = useState(0); // Zeitraum vor/zurück blättern
   const [plan, setPlan] = useState<RangePlan | null>(null);
   const [loading, setLoading] = useState(false);
@@ -79,9 +85,13 @@ export function SlotFinder({ today, doctorId, doctorColor, duration, slot, exclu
   }, []);
 
   const t = target(when, today, anchor);
-  const baseFrom = when === "next" ? today : addDays(t, -Math.floor(span / 2));
-  const from = addDays(baseFrom < today ? today : baseFrom, shift * span);
-  const to = addDays(from, span);
+  // Wunschzeitraum (z. B. aus der Warteliste): frühestens … spätestens, höchstens 6 Wochen auf einmal
+  const rFrom = wish?.from && isDay(wish.from) && wish.from > today ? wish.from : today;
+  const rTo = wish?.to && isDay(wish.to) && wish.to >= rFrom ? wish.to : addDays(rFrom, 14);
+  const win = when === "range" ? Math.min(42, Math.max(1, daysBetween(rFrom, rTo))) : span;
+  const baseFrom = when === "range" ? rFrom : when === "next" ? today : addDays(t, -Math.floor(span / 2));
+  const from = addDays(baseFrom < today ? today : baseFrom, shift * win);
+  const to = addDays(from, win);
 
   useEffect(() => {
     if (!doctorId) return;
@@ -103,6 +113,7 @@ export function SlotFinder({ today, doctorId, doctorColor, duration, slot, exclu
           if (d.day === plan!.today && m < plan!.nowMin + 5) continue;
           if (part === "vor" && m >= 12 * 60) continue;
           if (part === "nach" && m < 12 * 60) continue;
+          if (after !== null && m < after) continue;
           const b = plan!.buffer;
           if (d.appts.some((a) => a.id !== excludeId && a.start < m + duration + b && a.end > m - b)) continue;
           free.push(m);
@@ -110,11 +121,14 @@ export function SlotFinder({ today, doctorId, doctorColor, duration, slot, exclu
       }
     }
     return { ...d, free };
-  }), [plan, duration, step, part, excludeId]);
+  }), [plan, duration, step, part, after, excludeId]);
 
   const all = days.flatMap((d) => d.open);
-  const startMin = all.length ? Math.floor(Math.min(...all.map((o) => o[0])) / 60) * 60 : 8 * 60;
-  const endMin = all.length ? Math.ceil(Math.max(...all.map((o) => o[1])) / 60) * 60 : 18 * 60;
+  const openStart = all.length ? Math.floor(Math.min(...all.map((o) => o[0])) / 60) * 60 : 8 * 60;
+  const openEnd = all.length ? Math.ceil(Math.max(...all.map((o) => o[1])) / 60) * 60 : 18 * 60;
+  // Nur den gewünschten Teil des Tages zeigen (ab-Uhrzeit, vor-/nachmittags)
+  const startMin = Math.min(openEnd - 60, Math.max(openStart, after !== null ? Math.floor(after / 60) * 60 : part === "nach" ? 12 * 60 : openStart));
+  const endMin = Math.max(startMin + 60, part === "vor" && after === null ? Math.min(openEnd, 13 * 60) : openEnd);
   // Höhe: der ganze Tag passt in die Fensterhöhe (abzüglich Kopfzeile, Tageskopf und Legende)
   // Fenster − App-Kopfzeile − alles über dem Raster − Legende − untere Leiste (Tablet/Handy)
   const bottomBar = size.vw < 1024 ? 64 : 0;
@@ -146,17 +160,25 @@ export function SlotFinder({ today, doctorId, doctorColor, duration, slot, exclu
 
   return (
     <div className="space-y-3">
+      {wish && (hasRange || wish.note || wish.after != null || wish.part) && (
+        <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+          <b>Wunsch laut Warteliste:</b>{" "}
+          {hasRange && <>{wish.from ? `frühestens ${full(wish.from)}` : ""}{wish.from && wish.to ? ", " : ""}{wish.to ? `spätestens ${full(wish.to)}` : ""}</>}
+          {wish.note && <>{hasRange ? " · " : ""}„{wish.note}“</>}
+          <span className="block text-xs text-amber-800">Zeitraum und Tageszeit sind schon eingestellt – nur noch ein grünes Feld antippen.</span>
+        </div>
+      )}
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="w-24 text-xs font-medium text-slate-600">Wann?</span>
-          {WHEN.map((w) => (
+          {WHEN.filter((w) => w.key !== "range" || hasRange).map((w) => (
             <button key={w.key} type="button" aria-pressed={when === w.key} className={chip(when === w.key)} onClick={() => { setWhen(w.key); setShift(0); setOffset(0); }}>{w.label}</button>
           ))}
           {when === "date" && (
             <input type="date" className="input w-44" value={anchor} aria-label="Wunschdatum" onChange={(e) => { setAnchor(e.target.value); setShift(0); setOffset(0); }} />
           )}
         </div>
-        {when !== "next" && (
+        {when !== "next" && when !== "range" && (
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="w-24 text-xs font-medium text-slate-600">Spielraum</span>
             {SPANS.map((s) => <button key={s.v} type="button" aria-pressed={span === s.v} className={chip(span === s.v)} onClick={() => { setSpan(s.v); setShift(0); setOffset(0); }}>{s.label}</button>)}
@@ -164,7 +186,10 @@ export function SlotFinder({ today, doctorId, doctorColor, duration, slot, exclu
         )}
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="w-24 text-xs font-medium text-slate-600">Tageszeit</span>
-          {PARTS.map((p) => <button key={p.v} type="button" aria-pressed={part === p.v} className={chip(part === p.v)} onClick={() => setPart(p.v)}>{p.label}</button>)}
+          {PARTS.map((p) => <button key={p.v} type="button" aria-pressed={part === p.v && after === null} className={chip(part === p.v && after === null)} onClick={() => { setPart(p.v); setAfter(null); }}>{p.label}</button>)}
+          {wish?.after != null && (
+            <button type="button" aria-pressed={after !== null} className={chip(after !== null)} onClick={() => { setAfter(wish.after!); setPart("egal"); }}>ab {hhmm(wish.after)} Uhr</button>
+          )}
         </div>
       </div>
 
@@ -176,7 +201,7 @@ export function SlotFinder({ today, doctorId, doctorColor, duration, slot, exclu
             <button type="button" className="btn-secondary btn-sm px-2" aria-label="Frühere Tage" disabled={first === 0 && from <= today} onClick={back}><ChevronLeft className="h-4 w-4" /></button>
             <div className="min-w-0 flex-1 text-sm">
               <b>{full(from)} – {full(to)}</b>
-              {when !== "next" && shift === 0 && <span className="text-slate-500"> · rund um {full(t)}</span>}
+              {when !== "next" && when !== "range" && shift === 0 && <span className="text-slate-500"> · rund um {full(t)}</span>}
               {visible.length < days.length && (
                 <span className="block text-xs text-slate-500">Angezeigt: {short(visible[0].day)} – {short(visible[visible.length - 1].day)} · weitere Tage mit den Pfeilen</span>
               )}
@@ -220,13 +245,16 @@ export function SlotFinder({ today, doctorId, doctorColor, duration, slot, exclu
                       <span className="tabular-nums">{fmt(d.day, { day: "2-digit", month: "2-digit" })}</span>
                     </div>
                     <div className={`relative ${d.absent ? "hatch" : "bg-slate-200"}`} style={{ height }}>
-                      {!d.absent && d.open.map(([o, c], i) => <div key={i} className="absolute inset-x-0 bg-white" style={{ top: (o - startMin) * PX, height: (c - o) * PX }} />)}
+                      {!d.absent && d.open.map(([o, c], i) => {
+                        const a = Math.max(o, startMin), b = Math.min(c, endMin);
+                        return b > a ? <div key={i} className="absolute inset-x-0 bg-white" style={{ top: (a - startMin) * PX, height: (b - a) * PX }} /> : null;
+                      })}
                       {hours.map((m) => <div key={m} className="pointer-events-none absolute inset-x-0 border-t border-slate-200" style={{ top: (m - startMin) * PX }} />)}
                       {d.absent && <div className="absolute inset-x-0 top-2 text-center text-xs font-medium text-rose-700">{d.absent}</div>}
-                      {d.appts.filter((a) => a.id !== excludeId).map((a) => (
+                      {d.appts.filter((a) => a.id !== excludeId && a.end > startMin && a.start < endMin).map((a) => (
                         <div key={a.id} title={`${hhmm(a.start)}–${hhmm(a.end)} ${a.label}: ${a.reason}`}
                           className="absolute inset-x-0.5 z-10 overflow-hidden rounded border border-l-[3px] px-1 text-[0.625rem] leading-tight whitespace-nowrap text-slate-800"
-                          style={{ top: Math.max(0, a.start - startMin) * PX, height: Math.max((a.end - a.start) * PX - 1, 10), borderColor: `${doctorColor}88`, borderLeftColor: doctorColor, background: `${doctorColor}33` }}>
+                          style={{ top: Math.max(0, a.start - startMin) * PX, height: Math.max((Math.min(a.end, endMin) - Math.max(a.start, startMin)) * PX - 1, 10), borderColor: `${doctorColor}88`, borderLeftColor: doctorColor, background: `${doctorColor}33` }}>
                           {hhmm(a.start)} {a.label}
                         </div>
                       ))}
