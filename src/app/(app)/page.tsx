@@ -9,6 +9,7 @@ import { ABSENCE, ACTIVE_STATUSES, isProvider } from "@/lib/labels";
 import { Notice } from "@/components/ui";
 import { FlowBoard, type ColumnKey, type FlowAppt } from "@/components/today/flow-board";
 import { RoomStatus, type RoomState } from "@/components/today/room-status";
+import { needsCard, quarterOf } from "@/lib/insurance-card";
 import { Attention } from "@/components/today/attention";
 import { DoctorFilter } from "@/components/today/doctor-filter";
 import { ForYou } from "@/components/today/for-you";
@@ -56,6 +57,12 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
     warnPatients = new Set((data ?? []).map((r) => r.patient_id));
   }
 
+  // Versichertenkarte: wer muss sie in diesem Quartal noch vorlegen? (nur offene Termine von heute)
+  const openIds = [...new Set(visible.filter((a) => ["geplant", "bestaetigt", "eingecheckt", "in_behandlung"].includes(a.status)).map((a) => a.patient_id))];
+  const { data: cardRows } = openIds.length
+    ? await supabase.from("patients").select("id, insurance_type, card_checked_on").in("id", openIds)
+    : { data: [] as { id: string; insurance_type: string | null; card_checked_on: string | null }[] };
+  const cardMissing = new Set((cardRows ?? []).filter((r) => needsCard(r, day)).map((r) => r.id));
   const roomName = new Map(rooms.map((r) => [r.id, r.name]));
   const flow: FlowAppt[] = visible.map((a) => {
     const d = byId.get(a.doctor_id);
@@ -64,6 +71,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
       is_emergency: a.is_emergency, reason: a.reason, location_kind: a.location_kind, checked_in_at: a.checked_in_at, actual_start: a.actual_start,
       actual_end: a.actual_end, patientName: a.patient ? `${a.patient.last_name}, ${a.patient.first_name}` : "—",
       doctorColor: d?.color ?? "#94a3b8", doctorName: d ? short(d) : "", roomName: a.room_id ? roomName.get(a.room_id) ?? null : null, warn: warnPatients.has(a.patient_id), selfCheckin: a.self_checked_in,
+      patientId: a.patient_id, cardMissing: cardMissing.has(a.patient_id), quarter: quarterOf(day).label,
     };
   });
 

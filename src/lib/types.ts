@@ -34,6 +34,7 @@ export interface Patient {
   city: string | null; insurance_type: string | null; insurance_name: string | null; insurance_number: string | null;
   emergency_contact_name: string | null; emergency_contact_phone: string | null; notify_email: boolean;
   reminder_hours: number[] | null; delay_notify_minutes: number | null; notes: string | null; created_at: string;
+  card_checked_on: string | null; card_checked_by: string | null;
 }
 export interface Appointment {
   id: string; practice_id: string; patient_id: string; doctor_id: string; assistant_id: string | null;

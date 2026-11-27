@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AlertTriangle, CalendarPlus, Pencil, Paperclip } from "lucide-react";
+import { AlertTriangle, CalendarPlus, CreditCard, Pencil, Paperclip } from "lucide-react";
 import { getContext } from "@/lib/context";
 import { loadStaff } from "@/lib/data";
-import { addRecordEntry, assignCare, removeCare, uploadAttachment } from "@/app/actions/patients";
+import { addRecordEntry, assignCare, markCardChecked, removeCare, uploadAttachment } from "@/app/actions/patients";
+import { needsCard, quarterOf } from "@/lib/insurance-card";
 import { addNote } from "@/app/actions/appointments";
 import { Badge, Card, Empty, Notice, PageHeader, StatusBadge, staffName } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
-import { age, fmtDate, fmtDateTime, fmtTime } from "@/lib/time";
+import { age, fmtDate, fmtDateTime, fmtTime, today } from "@/lib/time";
 import type { Appointment, Patient } from "@/lib/types";
 
 export const metadata = { title: "Patientenakte" };
@@ -63,6 +64,23 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
         }
       />
       {typeof sp.fehler === "string" && <Notice tone="error">{sp.fehler}</Notice>}
+      {(p.insurance_type ?? "gesetzlich") === "gesetzlich" && (() => {
+        const d0 = today(practice.timezone);
+        const missing = needsCard(p, d0);
+        return (
+          <form action={markCardChecked} className={`mb-4 flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-sm ${missing ? "border-amber-300 bg-amber-50 text-amber-950" : "border-emerald-200 bg-emerald-50 text-emerald-900"}`}>
+            <input type="hidden" name="patient_id" value={p.id} />
+            <CreditCard className="h-4 w-4 shrink-0" />
+            <span className="flex-1">
+              {missing
+                ? <>Versichertenkarte für <b>{quarterOf(d0).label}</b> noch nicht vorgelegt{p.card_checked_on ? ` (zuletzt ${fmtDate(p.card_checked_on + "T12:00:00Z")})` : ""}.</>
+                : <>Versichertenkarte für <b>{quarterOf(d0).label}</b> vorgelegt am {fmtDate(p.card_checked_on + "T12:00:00Z")}.</>}
+              {!p.insurance_type && <span className="text-xs"> Versicherungsart unbekannt – bitte in den Stammdaten eintragen.</span>}
+            </span>
+            {missing ? <SubmitButton size="sm">Karte vorgelegt</SubmitButton> : <SubmitButton size="sm" variant="ghost" name="undo" value="1">Rückgängig</SubmitButton>}
+          </form>
+        );
+      })()}
       {warnings.length > 0 && (
         <div className="mb-4 rounded-lg border border-rose-300 bg-rose-50 p-3 text-sm text-rose-900">
           <div className="mb-1 flex items-center gap-1.5 font-semibold"><AlertTriangle className="h-4 w-4" /> Warnhinweise</div>

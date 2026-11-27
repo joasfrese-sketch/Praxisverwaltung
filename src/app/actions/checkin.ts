@@ -5,7 +5,7 @@ import { requireAdmin } from "@/lib/context";
 import { createClient } from "@/lib/supabase/server";
 
 export type CheckinResult =
-  | { result: "ok" | "bereits"; ticket: number; time: string }
+  | { result: "ok" | "bereits"; ticket: number; time: string; karte?: boolean }
   | { result: "zu_frueh"; time: string; ab: string }
   | { result: "nicht_gefunden" | "gesperrt" | "deaktiviert" | "eingabe" };
 
