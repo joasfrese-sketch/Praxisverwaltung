@@ -15,7 +15,7 @@ export interface Practice {
   cancel_deadline_hours: number; reminder_hours: number[]; delay_notify_minutes: number;
   no_show_warn_threshold: number; no_show_ask_minutes: number; display_token: string;
   self_checkin_enabled: boolean; checkin_token: string; self_checkin_early_minutes: number;
-  online_booking_enabled: boolean; booking_token: string; online_lead_hours: number; online_horizon_days: number;
+  online_booking_enabled: boolean; booking_token: string; booking_slug: string | null; online_lead_hours: number; online_horizon_days: number;
 }
 export interface Staff {
   id: string; practice_id: string; user_id: string | null; role: StaffRole; is_admin: boolean;

@@ -6,7 +6,7 @@ import { smtpConfig } from "@/lib/mail";
 import { headers } from "next/headers";
 import { qrSvg } from "@/lib/qr";
 import { rotateCheckinToken, saveSelfCheckin } from "@/app/actions/checkin";
-import { rotateBookingToken, saveOnlineBooking } from "@/app/actions/booking";
+import { rotateBookingToken, saveBookingSlug, saveOnlineBooking } from "@/app/actions/booking";
 import { Card, Notice, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { PRACTICE_TYPES, ROOM_CAPABILITIES } from "@/lib/labels";
@@ -30,7 +30,8 @@ export default async function Settings({ searchParams }: PageProps<"/einstellung
   const h = await headers();
   const checkinUrl = `${process.env.APP_URL || `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`}/checkin/${p.checkin_token}`;
   const checkinQr = me.is_admin ? await qrSvg(checkinUrl) : "";
-  const bookingUrl = checkinUrl.replace(`/checkin/${p.checkin_token}`, `/buchen/${p.booking_token}`);
+  const bookingUrl = checkinUrl.replace(`/checkin/${p.checkin_token}`, `/buchen/${p.booking_slug ?? p.booking_token}`);
+  const bookingBase = checkinUrl.replace(`/checkin/${p.checkin_token}`, "/buchen/");
   const bookingQr = me.is_admin ? await qrSvg(bookingUrl) : "";
   const tmpl = (t: AppointmentType) => t.protocol_template.map((f) => (f.type === "textarea" ? f.label : `${f.label} | ${f.type}`)).join("\n");
 
@@ -39,6 +40,7 @@ export default async function Settings({ searchParams }: PageProps<"/einstellung
       <PageHeader title="Einstellungen" subtitle={ro ? "Nur Administratoren können Einstellungen ändern." : undefined}
         actions={<Link href="/einstellungen/sicherheit" className="btn-secondary"><ShieldCheck className="h-4 w-4" /> Mein Konto & 2FA</Link>} />
       {sp.gespeichert && <Notice tone="success">Gespeichert.</Notice>}
+      {typeof sp.fehler === "string" && <Notice tone="error">{sp.fehler}</Notice>}
 
       <Card title="Praxis & Regeln">
         <form action={savePractice}>
@@ -202,7 +204,16 @@ export default async function Settings({ searchParams }: PageProps<"/einstellung
                     <a href={bookingUrl} target="_blank" rel="noreferrer" className="btn-secondary btn-sm">Öffnen</a>
                   </div>
                 </div>
-                <form action={rotateBookingToken}><SubmitButton size="sm" variant="ghost" confirm="Neuen Buchungslink erzeugen? Der alte Link (Website, Aushänge) funktioniert dann nicht mehr.">Neuen Link erzeugen</SubmitButton></form>
+                <form action={saveBookingSlug} className="flex flex-wrap items-end gap-2">
+                  <label className="block"><span className="label">Fester Link-Name</span>
+                    <span className="flex items-center gap-1"><span className="font-mono text-xs text-slate-500">{bookingBase}</span>
+                      <input name="booking_slug" className="input w-40 font-mono text-xs" defaultValue={p.booking_slug ?? ""} placeholder="z. B. termin" pattern="[a-z0-9][a-z0-9\-]{1,38}[a-z0-9]" /></span>
+                  </label>
+                  <SubmitButton size="sm" variant="secondary">Link-Namen speichern</SubmitButton>
+                </form>
+                {!p.booking_slug && (
+                  <form action={rotateBookingToken}><SubmitButton size="sm" variant="ghost" confirm="Neuen Buchungslink erzeugen? Der alte Link (Website, Aushänge) funktioniert dann nicht mehr.">Neuen Link erzeugen</SubmitButton></form>
+                )}
                 {!p.online_booking_enabled && <p className="text-amber-700">Noch nicht aktiv – Haken setzen und speichern.</p>}
               </>
             )}
