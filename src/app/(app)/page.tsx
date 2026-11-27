@@ -70,7 +70,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
       id: a.id, status: a.status, starts_at: a.starts_at, ends_at: a.ends_at, delay_minutes: a.delay_minutes, ticket_number: a.ticket_number,
       is_emergency: a.is_emergency, reason: a.reason, location_kind: a.location_kind, checked_in_at: a.checked_in_at, actual_start: a.actual_start,
       actual_end: a.actual_end, patientName: a.patient ? `${a.patient.last_name}, ${a.patient.first_name}` : "—",
-      doctorColor: d?.color ?? "#94a3b8", doctorName: d ? short(d) : "", roomName: a.room_id ? roomName.get(a.room_id) ?? null : null, warn: warnPatients.has(a.patient_id), selfCheckin: a.self_checked_in,
+      doctorColor: d?.color ?? "#94a3b8", doctorName: d ? short(d) : "", roomName: a.room_id ? roomName.get(a.room_id) ?? null : null, warn: warnPatients.has(a.patient_id), selfCheckin: a.self_checked_in, online: a.booked_online,
       patientId: a.patient_id, cardMissing: cardMissing.has(a.patient_id), quarter: quarterOf(day).label,
     };
   });

@@ -18,6 +18,7 @@ export async function saveStaff(f: FormData) {
     role: s(f, "role"), title: s(f, "title"), first_name: s(f, "first_name"), last_name: s(f, "last_name"), specialty: s(f, "specialty"),
     email: s(f, "email")?.toLowerCase() ?? null, phone: s(f, "phone"), color: s(f, "color") ?? "#4f6d8f",
     can_read_medical: f.get("can_read_medical") === "on", is_admin: f.get("is_admin") === "on" || id === me.id,
+    online_bookable: f.get("online_bookable") === "on",
     substitute_id: s(f, "substitute_id"), active: id === me.id ? true : f.get("active") !== "off",
   };
   if (!row.first_name || !row.last_name || !row.role) redirect(`/personal?fehler=${encodeURIComponent("Name und Rolle sind Pflicht.")}`);
@@ -82,7 +83,7 @@ export async function saveType(f: FormData) {
         const key = label.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
         return { key, label, type: (["text", "textarea", "number", "checkbox"].includes(type) ? type : "textarea") as ProtocolField["type"] };
       });
-    const row = { name: s(f, "name"), default_minutes: Number(s(f, "default_minutes") ?? 15), color: s(f, "color") ?? "#6b8bb0", protocol_template: template, required_capability: s(f, "required_capability") };
+    const row = { name: s(f, "name"), default_minutes: Number(s(f, "default_minutes") ?? 15), color: s(f, "color") ?? "#6b8bb0", protocol_template: template, required_capability: s(f, "required_capability"), online_bookable: f.get("online_bookable") === "on" };
     if (!row.name) return;
     if (id) await supabase.from("appointment_types").update(row).eq("id", id);
     else await supabase.from("appointment_types").insert({ ...row, practice_id: practice.id });

@@ -53,6 +53,7 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
         title={<span className="flex flex-wrap items-center gap-2">{p.last_name}, {p.first_name}
           {noShows >= practice.no_show_warn_threshold && <Badge tone="rose">{noShows}× nicht erschienen</Badge>}
           {(waitlist.data ?? []).length > 0 && <Badge tone="amber">auf Warteliste</Badge>}
+          {p.created_online && <Badge tone="brand">online angelegt – Stammdaten prüfen</Badge>}
         </span>}
         subtitle={[p.birth_date && `geb. ${fmtDate(p.birth_date + "T12:00:00Z")} (${age(p.birth_date)} J.)`, p.insurance_name ?? p.insurance_type, p.insurance_number].filter(Boolean).join(" · ")}
         actions={

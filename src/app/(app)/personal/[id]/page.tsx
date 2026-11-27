@@ -54,6 +54,7 @@ export default async function StaffDetail({ params, searchParams }: PageProps<"/
           <div className="space-y-1.5 text-sm sm:col-span-3">
             <label className="flex items-center gap-2"><input type="checkbox" name="can_read_medical" defaultChecked={s?.can_read_medical} className="accent-brand-600" /> Darf medizinische Inhalte (Protokolle, Akte, Befunde) lesen und schreiben <span className="text-xs text-slate-500">(Ärzte/Therapeuten immer)</span></label>
             <label className="flex items-center gap-2"><input type="checkbox" name="is_admin" defaultChecked={s?.is_admin} className="accent-brand-600" /> Administrator (Einstellungen, Personal)</label>
+            <label className="flex items-center gap-2"><input type="checkbox" name="online_bookable" defaultChecked={s ? s.online_bookable : true} className="accent-brand-600" /> Online buchbar <span className="text-xs text-slate-500">(Patienten können bei dieser Person selbst Termine buchen – nur Ärzte/Therapeuten)</span></label>
             {s && s.id !== me.id && <label className="flex items-center gap-2"><input type="checkbox" name="active" value="off" defaultChecked={!s.active} className="accent-rose-600" /> Deaktiviert (kein Zugriff mehr)</label>}
           </div>
           {!ro && <div><SubmitButton>{isNew ? "Anlegen" : "Speichern"}</SubmitButton></div>}
