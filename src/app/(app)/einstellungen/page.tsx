@@ -6,6 +6,7 @@ import { smtpConfig } from "@/lib/mail";
 import { headers } from "next/headers";
 import { qrSvg } from "@/lib/qr";
 import { rotateCheckinToken, saveSelfCheckin } from "@/app/actions/checkin";
+import { rotateBookingToken, saveOnlineBooking } from "@/app/actions/booking";
 import { Card, Notice, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { PRACTICE_TYPES, ROOM_CAPABILITIES } from "@/lib/labels";
@@ -29,6 +30,8 @@ export default async function Settings({ searchParams }: PageProps<"/einstellung
   const h = await headers();
   const checkinUrl = `${process.env.APP_URL || `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`}/checkin/${p.checkin_token}`;
   const checkinQr = me.is_admin ? await qrSvg(checkinUrl) : "";
+  const bookingUrl = checkinUrl.replace(`/checkin/${p.checkin_token}`, `/buchen/${p.booking_token}`);
+  const bookingQr = me.is_admin ? await qrSvg(bookingUrl) : "";
   const tmpl = (t: AppointmentType) => t.protocol_template.map((f) => (f.type === "textarea" ? f.label : `${f.label} | ${f.type}`)).join("\n");
 
   return (
@@ -147,6 +150,7 @@ export default async function Settings({ searchParams }: PageProps<"/einstellung
                 <input name="name" className="input" defaultValue={t?.name} placeholder="Neuer Termintyp" />
                 <input name="default_minutes" type="number" min={1} className="input" defaultValue={t?.default_minutes ?? p.slot_minutes} title="Standarddauer (min)" />
                 <input name="color" type="color" className="input h-9 p-1" defaultValue={t?.color ?? "#6b8bb0"} />
+                <label className="flex items-center gap-2 text-sm sm:col-span-4"><input type="checkbox" name="online_bookable" defaultChecked={t?.online_bookable ?? false} className="accent-brand-600" /> Online buchbar (Patienten können diese Leistung selbst buchen)</label>
                 <select name="required_capability" className="input" defaultValue={t?.required_capability ?? ""} title="Benötigter Raum">
                   <option value="">Raum: beliebig</option>
                   {Object.entries(ROOM_CAPABILITIES).map(([k, l]) => <option key={k} value={k}>Raum mit {l}</option>)}
@@ -161,6 +165,49 @@ export default async function Settings({ searchParams }: PageProps<"/einstellung
               </fieldset>
             </form>
           ))}
+        </div>
+      </Card>
+
+      <Card title="Online-Terminbuchung für Patienten" className="scroll-mt-20">
+        <div id="online" className="grid gap-4 md:grid-cols-[1fr_auto]">
+          <div className="space-y-3 text-sm">
+            <p className="text-slate-600">
+              Patienten buchen ohne Konto selbst: Leistung → Behandler → freie Zeit → Name, Geburtsdatum, Telefon. Es sind nur freie Zeiten sichtbar,
+              keine anderen Patienten. Neue Patienten werden automatisch angelegt (bitte beim ersten Besuch die Stammdaten prüfen), bekannte werden
+              über Vorname, Nachname und Geburtsdatum wiedererkannt. Empfang und Admins bekommen bei jeder Buchung eine Meldung.
+            </p>
+            <form action={saveOnlineBooking} className="flex flex-wrap items-end gap-3">
+              <fieldset disabled={ro} className="contents">
+                <label className="flex items-center gap-2 font-medium"><input type="checkbox" name="online_booking_enabled" defaultChecked={p.online_booking_enabled} className="h-4 w-4 accent-brand-600" /> Online-Buchung aktiv</label>
+                <label className="block"><span className="label">Frühestens (Std. vorher)</span><input name="online_lead_hours" type="number" min={0} max={336} className="input w-28" defaultValue={p.online_lead_hours} /></label>
+                <label className="block"><span className="label">Bis (Tage im Voraus)</span><input name="online_horizon_days" type="number" min={1} max={400} className="input w-28" defaultValue={p.online_horizon_days} /></label>
+                {!ro && <SubmitButton size="sm">Speichern</SubmitButton>}
+              </fieldset>
+            </form>
+            {(() => {
+              const bookable = ((types ?? []) as AppointmentType[]).filter((t) => t.online_bookable);
+              return (
+                <p className={bookable.length ? "text-slate-600" : "text-amber-700"}>
+                  Online buchbare Leistungen: {bookable.length ? <b>{bookable.map((t) => t.name).join(", ")}</b> : "noch keine – unten bei „Termintypen“ den Haken „Online buchbar“ setzen."}
+                  {" "}Welche Ärzte buchbar sind, steht im Personal-Profil („Online buchbar“).
+                </p>
+              );
+            })()}
+            {me.is_admin && (
+              <>
+                <div>
+                  <span className="label">Buchungslink (auf der Praxis-Website verlinken, z. B. „Termin online buchen“)</span>
+                  <div className="flex flex-wrap gap-2">
+                    <input readOnly value={bookingUrl} className="input min-w-0 flex-1 font-mono text-xs" />
+                    <a href={bookingUrl} target="_blank" rel="noreferrer" className="btn-secondary btn-sm">Öffnen</a>
+                  </div>
+                </div>
+                <form action={rotateBookingToken}><SubmitButton size="sm" variant="ghost" confirm="Neuen Buchungslink erzeugen? Der alte Link (Website, Aushänge) funktioniert dann nicht mehr.">Neuen Link erzeugen</SubmitButton></form>
+                {!p.online_booking_enabled && <p className="text-amber-700">Noch nicht aktiv – Haken setzen und speichern.</p>}
+              </>
+            )}
+          </div>
+          {me.is_admin && <div className="w-40 justify-self-center rounded-md border border-slate-200 p-2" title="QR-Code zur Online-Buchung" dangerouslySetInnerHTML={{ __html: bookingQr }} />}
         </div>
       </Card>
 
