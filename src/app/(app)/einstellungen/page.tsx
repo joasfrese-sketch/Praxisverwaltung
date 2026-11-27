@@ -3,6 +3,9 @@ import { ShieldCheck } from "lucide-react";
 import { getContext } from "@/lib/context";
 import { saveCategory, saveOpeningHours, savePractice, saveRoom, saveType, sendTestMail } from "@/app/actions/admin";
 import { smtpConfig } from "@/lib/mail";
+import { headers } from "next/headers";
+import { qrSvg } from "@/lib/qr";
+import { rotateCheckinToken, saveSelfCheckin } from "@/app/actions/checkin";
 import { Card, Notice, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { PRACTICE_TYPES, ROOM_CAPABILITIES } from "@/lib/labels";
@@ -23,6 +26,9 @@ export default async function Settings({ searchParams }: PageProps<"/einstellung
     supabase.from("record_categories").select("*").eq("practice_id", p.id).order("sort"),
   ]);
   const ro = !me.is_admin;
+  const h = await headers();
+  const checkinUrl = `${process.env.APP_URL || `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`}/checkin/${p.checkin_token}`;
+  const checkinQr = me.is_admin ? await qrSvg(checkinUrl) : "";
   const tmpl = (t: AppointmentType) => t.protocol_template.map((f) => (f.type === "textarea" ? f.label : `${f.label} | ${f.type}`)).join("\n");
 
   return (
@@ -155,6 +161,41 @@ export default async function Settings({ searchParams }: PageProps<"/einstellung
               </fieldset>
             </form>
           ))}
+        </div>
+      </Card>
+
+      <Card title="Selbst-Check-in für Patienten" className="scroll-mt-20">
+        <div id="checkin" className="grid gap-4 md:grid-cols-[1fr_auto]">
+          <div className="space-y-3 text-sm">
+            <p className="text-slate-600">
+              Patienten melden sich selbst an – am Tablet am Empfang oder per QR-Code mit dem eigenen Handy. Sie geben Nachname und Geburtsdatum ein,
+              der heutige Termin wird eingecheckt und sie sehen ihre Aufrufnummer. Auf „Heute“ erscheinen sie im Wartezimmer mit dem Hinweis „selbst angemeldet“.
+            </p>
+            <form action={saveSelfCheckin} className="flex flex-wrap items-end gap-3">
+              <fieldset disabled={ro} className="contents">
+                <label className="flex items-center gap-2 font-medium"><input type="checkbox" name="self_checkin_enabled" defaultChecked={p.self_checkin_enabled} className="h-4 w-4 accent-brand-600" /> Selbst-Check-in aktiv</label>
+                <label className="block"><span className="label">Anmeldung frühestens (min vor Termin)</span><input name="self_checkin_early_minutes" type="number" min={5} max={240} className="input w-32" defaultValue={p.self_checkin_early_minutes} /></label>
+                {!ro && <SubmitButton size="sm">Speichern</SubmitButton>}
+              </fieldset>
+            </form>
+            {me.is_admin && (
+              <>
+                <div>
+                  <span className="label">Link für das Tablet am Empfang (im Vollbild öffnen)</span>
+                  <div className="flex flex-wrap gap-2">
+                    <input readOnly value={checkinUrl} className="input min-w-0 flex-1 font-mono text-xs" />
+                    <a href={checkinUrl} target="_blank" rel="noreferrer" className="btn-secondary btn-sm">Öffnen</a>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Link href="/einstellungen/checkin-aushang" className="btn-secondary btn-sm">Aushang mit QR-Code drucken</Link>
+                  <form action={rotateCheckinToken}><SubmitButton size="sm" variant="ghost" confirm="Neuen Link erzeugen? Alte QR-Aushänge und Tablet-Links funktionieren dann nicht mehr.">Neuen Link erzeugen</SubmitButton></form>
+                </div>
+                {!p.self_checkin_enabled && <p className="text-amber-700">Noch nicht aktiv – Haken setzen und speichern.</p>}
+              </>
+            )}
+          </div>
+          {me.is_admin && <div className="w-40 justify-self-center rounded-md border border-slate-200 p-2" title="QR-Code zum Selbst-Check-in" dangerouslySetInnerHTML={{ __html: checkinQr }} />}
         </div>
       </Card>
 
