@@ -53,3 +53,14 @@ export async function rotateBookingToken() {
   await supabase.from("practices").update({ booking_token: randomUUID() }).eq("id", practice.id);
   revalidatePath("/einstellungen");
 }
+
+export async function saveBookingSlug(f: FormData) {
+  const { supabase, practice } = await requireAdmin();
+  const slug = String(f.get("booking_slug") ?? "").trim().toLowerCase();
+  const { redirect } = await import("next/navigation");
+  if (slug && !/^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/.test(slug))
+    redirect(`/einstellungen?fehler=${encodeURIComponent("Kurzname: 3–40 Zeichen, nur a–z, 0–9 und Bindestrich.")}#online`);
+  const { error } = await supabase.from("practices").update({ booking_slug: slug || null }).eq("id", practice.id);
+  if (error) redirect(`/einstellungen?fehler=${encodeURIComponent(error.code === "23505" ? "Dieser Kurzname ist schon vergeben." : error.message)}#online`);
+  revalidatePath("/einstellungen");
+}
