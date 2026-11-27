@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Check, DoorOpen, Maximize2, MapPin, Minimize2, Smartphone, TriangleAlert, UserX, Video } from "lucide-react";
+import { Check, CreditCard, DoorOpen, Maximize2, MapPin, Minimize2, Smartphone, TriangleAlert, UserX, Video } from "lucide-react";
+import { markCardChecked } from "@/app/actions/patients";
 import { setStatus } from "@/app/actions/appointments";
 import { SubmitButton } from "@/components/submit-button";
 import { fmtTime, minutesBetween } from "@/lib/time";
@@ -23,6 +24,9 @@ export interface FlowAppt {
   roomName: string | null;
   warn: boolean;
   selfCheckin?: boolean;
+  patientId?: string;
+  cardMissing?: boolean;
+  quarter?: string;
 }
 
 type Tone = "muted" | "warn" | "bad";
@@ -77,6 +81,7 @@ function Card({ a, now, tz, back }: { a: FlowAppt; now: Date; tz: string; back: 
         <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-slate-600 empty:hidden">
           {a.is_emergency && <span className="rounded bg-rose-100 px-1.5 font-medium text-rose-800">Akut</span>}
           {a.warn && <span className="inline-flex items-center gap-1 font-medium text-amber-800"><TriangleAlert className="h-3.5 w-3.5" />Warnhinweis</span>}
+          {a.cardMissing && <span className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 font-medium text-amber-900" title="Versichertenkarte in diesem Quartal noch nicht vorgelegt"><CreditCard className="h-3.5 w-3.5" />Karte fehlt ({a.quarter?.split("/")[0]})</span>}
           {a.selfCheckin && a.status === "eingecheckt" && <span className="inline-flex items-center gap-1 rounded bg-sky-100 px-1.5 font-medium text-sky-800" title="Hat sich am Tablet/Handy selbst angemeldet"><Smartphone className="h-3.5 w-3.5" />selbst angemeldet</span>}
           {a.location_kind === "praxis" && a.roomName && <span className="inline-flex items-center gap-1"><DoorOpen className="h-3.5 w-3.5" />{a.roomName}</span>}
           {a.location_kind === "hausbesuch" && <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />Hausbesuch</span>}
@@ -97,6 +102,14 @@ function Card({ a, now, tz, back }: { a: FlowAppt; now: Date; tz: string; back: 
             <input type="hidden" name="back" value={back} />
             <SubmitButton className={`w-full text-white hover:brightness-95 ${act.cls}`}>{act.label}</SubmitButton>
           </form>
+          {a.cardMissing && a.patientId && (
+            <form action={markCardChecked}>
+              <input type="hidden" name="patient_id" value={a.patientId} />
+              <SubmitButton variant="secondary" className="border border-amber-300 bg-amber-50 px-2 text-amber-900 hover:bg-amber-100">
+                <CreditCard className="h-4 w-4" /><span className="hidden sm:inline">Karte ✓</span><span className="sr-only">Versichertenkarte vorgelegt</span>
+              </SubmitButton>
+            </form>
+          )}
           {overdue && (
             <form action={setStatus}>
               <input type="hidden" name="id" value={a.id} />

@@ -2,6 +2,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getContext } from "@/lib/context";
+import { today } from "@/lib/time";
 
 const s = (f: FormData, k: string) => {
   const v = f.get(k);
@@ -75,4 +76,14 @@ export async function uploadAttachment(f: FormData) {
     mime_type: file.type || null, size_bytes: file.size, uploaded_by: me.id,
   });
   revalidatePath(`/patienten/${patient_id}`);
+}
+
+/** Empfang vermerkt: Versichertenkarte in diesem Quartal vorgelegt (eingelesen wird sie im PVS). */
+export async function markCardChecked(f: FormData) {
+  const { supabase, practice, me } = await getContext();
+  const id = String(f.get("patient_id") ?? "");
+  if (!id) return;
+  const undo = f.get("undo") === "1";
+  await supabase.from("patients").update(undo ? { card_checked_on: null, card_checked_by: null } : { card_checked_on: today(practice.timezone), card_checked_by: me.id }).eq("id", id);
+  revalidatePath("/", "layout");
 }

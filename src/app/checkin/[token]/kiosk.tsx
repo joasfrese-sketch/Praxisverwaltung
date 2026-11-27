@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { CheckCircle2, Clock, UserRoundX } from "lucide-react";
+import { CheckCircle2, Clock, CreditCard, UserRoundX } from "lucide-react";
 import { selfCheckIn, type CheckinResult } from "@/app/actions/checkin";
 
 const RESET_SECONDS = 15;
@@ -48,6 +48,12 @@ export function Kiosk({ token, practice, enabled }: { token: string; practice: s
               <p className="text-8xl font-bold tabular-nums">{res.ticket}</p>
               <p className="mt-6 text-xl">Bitte nehmen Sie im Wartezimmer Platz.<br />Ihre Nummer und Ihr Raum erscheinen auf dem Bildschirm.</p>
               <p className="mt-2 text-brand-300">Termin um {res.time} Uhr</p>
+              {res.karte && (
+                <div className="mt-6 flex items-center gap-3 rounded-xl bg-amber-400 px-5 py-4 text-left text-brand-900">
+                  <CreditCard className="h-10 w-10 shrink-0" />
+                  <p className="text-xl font-semibold">Bitte legen Sie vor der Behandlung kurz am Empfang Ihre Versichertenkarte vor.</p>
+                </div>
+              )}
             </>
           ) : res.result === "zu_frueh" ? (
             <>
