@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Check, DoorOpen, Maximize2, MapPin, Minimize2, TriangleAlert, UserX, Video } from "lucide-react";
+import { Check, DoorOpen, Maximize2, MapPin, Minimize2, Smartphone, TriangleAlert, UserX, Video } from "lucide-react";
 import { setStatus } from "@/app/actions/appointments";
 import { SubmitButton } from "@/components/submit-button";
 import { fmtTime, minutesBetween } from "@/lib/time";
@@ -22,6 +22,7 @@ export interface FlowAppt {
   doctorName: string;
   roomName: string | null;
   warn: boolean;
+  selfCheckin?: boolean;
 }
 
 type Tone = "muted" | "warn" | "bad";
@@ -76,6 +77,7 @@ function Card({ a, now, tz, back }: { a: FlowAppt; now: Date; tz: string; back: 
         <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-slate-600 empty:hidden">
           {a.is_emergency && <span className="rounded bg-rose-100 px-1.5 font-medium text-rose-800">Akut</span>}
           {a.warn && <span className="inline-flex items-center gap-1 font-medium text-amber-800"><TriangleAlert className="h-3.5 w-3.5" />Warnhinweis</span>}
+          {a.selfCheckin && a.status === "eingecheckt" && <span className="inline-flex items-center gap-1 rounded bg-sky-100 px-1.5 font-medium text-sky-800" title="Hat sich am Tablet/Handy selbst angemeldet"><Smartphone className="h-3.5 w-3.5" />selbst angemeldet</span>}
           {a.location_kind === "praxis" && a.roomName && <span className="inline-flex items-center gap-1"><DoorOpen className="h-3.5 w-3.5" />{a.roomName}</span>}
           {a.location_kind === "hausbesuch" && <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />Hausbesuch</span>}
           {a.location_kind === "video" && <span className="inline-flex items-center gap-1"><Video className="h-3.5 w-3.5" />Video</span>}

@@ -14,6 +14,7 @@ export interface Practice {
   timezone: string; slot_minutes: number; buffer_minutes: number; emergency_slots_per_day: number;
   cancel_deadline_hours: number; reminder_hours: number[]; delay_notify_minutes: number;
   no_show_warn_threshold: number; no_show_ask_minutes: number; display_token: string;
+  self_checkin_enabled: boolean; checkin_token: string; self_checkin_early_minutes: number;
 }
 export interface Staff {
   id: string; practice_id: string; user_id: string | null; role: StaffRole; is_admin: boolean;
@@ -41,7 +42,7 @@ export interface Appointment {
   is_emergency: boolean; delay_minutes: number; ticket_number: number | null; checked_in_at: string | null;
   called_at: string | null; actual_start: string | null; actual_end: string | null;
   patient_confirmed_at: string | null; cancelled_by: string | null; cancel_reason: string | null;
-  notes: string | null; public_token: string; created_at: string;
+  notes: string | null; public_token: string; created_at: string; self_checked_in: boolean;
 }
 export type AppointmentWithPatient = Appointment & {
   patient: Pick<Patient, "id" | "first_name" | "last_name" | "birth_date"> | null;
